@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import './App.css';
 import { supabase } from './supabaseClient';
 import ProblemDefinition from './ProblemDefinition';
-import AISolutionPlanner from './AISolutionPlanner';
+import MVPPlanner from './MVPPlanner';
 import ShareFeedback from './ShareFeedback';
 import RefineIdea from './RefineIdea';
 import StartBuild from './StartBuild';
@@ -43,7 +43,7 @@ function App() {
   const sectionOrder = [
     'User Info',
     'Problem Definition',
-    'AI Solution Planner',
+    'MVP Planner',
     'Share Feedback',
     'Refine Idea',
     'Start Build',
@@ -53,7 +53,7 @@ function App() {
   const generateAISummary = (inputs) => {
     // Find all the relevant sections
     const problemDef = inputs.find(i => i.section_name === 'Problem Definition')?.input_data || {};
-    const aiSolution = inputs.find(i => i.section_name === 'AI Solution Planner')?.input_data || {};
+    const aiSolution = inputs.find(i => i.section_name === 'MVP Planner')?.input_data || {};
     const refinements = inputs.find(i => i.section_name === 'Refine Idea')?.input_data || {};
     
     return (
@@ -102,10 +102,10 @@ function App() {
             <p><strong>Outcome:</strong> {data.outcome}</p>
           </div>
         );
-      case 'AI Solution Planner':
+      case 'MVP Planner':
         return (
           <div>
-            <p><strong>AI Options:</strong></p>
+            <p><strong>Ideas:</strong></p>
             <ul>
               {data.aiOptions.map((option, index) => (
                 <li key={index}>{option}</li>
@@ -312,8 +312,8 @@ function App() {
   const getNextSection = useCallback((sectionName) => {
     switch (sectionName) {
       case 'Problem Definition':
-        return 'aisolutionplanner';
-      case 'AI Solution Planner':
+        return 'mvpplanner';
+      case 'MVP Planner':
         return 'sharefeedback';
       case 'Share Feedback':
         return 'refineidea';
@@ -434,18 +434,18 @@ function App() {
               Problem Definition
             </button>
             <button
-              onClick={() => setCurrentSection('aisolutionplanner')}
+              onClick={() => setCurrentSection('mvpplanner')}
               style={{
                 padding: '10px 20px',
                 borderRadius: '4px',
                 border: 'none',
-                backgroundColor: currentSection === 'aisolutionplanner' ? 'white' : 'black',
-                color: currentSection === 'aisolutionplanner' ? 'black' : 'white',
+                backgroundColor: currentSection === 'mvpplanner' ? 'white' : 'black',
+                color: currentSection === 'mvpplanner' ? 'black' : 'white',
                 cursor: 'pointer',
-                fontWeight: currentSection === 'aisolutionplanner' ? 'bold' : 'normal',
+                fontWeight: currentSection === 'mvpplanner' ? 'bold' : 'normal',
               }}
             >
-              AI Solution Planner
+              MVP Planner
             </button>
             <button
               onClick={() => setCurrentSection('sharefeedback')}
@@ -592,8 +592,8 @@ function App() {
         <ProblemDefinition onSave={handleSectionSave} sessionId={sessionId} />
       )}
 
-      {currentSection === 'aisolutionplanner' && (
-        <AISolutionPlanner onSave={handleSectionSave} sessionId={sessionId} />
+      {currentSection === 'mvpplanner' && (
+        <MVPPlanner onSave={handleSectionSave} sessionId={sessionId} />
       )}
 
       {currentSection === 'sharefeedback' && (
