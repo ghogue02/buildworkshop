@@ -138,11 +138,10 @@ function App() {
       case 'Start Build':
         return (
           <div>
-            <p><strong>Setup & Planning:</strong> {data.setup}</p>
-            <p><strong>Core Functionality:</strong> {data.core}</p>
-            <p><strong>User Experience:</strong> {data.ux}</p>
-            <p><strong>Testing & Refinement:</strong> {data.testing}</p>
-            <p><strong>Final Touches:</strong> {data.finalTouches}</p>
+            <p><strong>What was built:</strong> {data.whatBuilt}</p>
+            <p><strong>Functionality achieved:</strong> {data.functionality}</p>
+            <p><strong>Future additions:</strong> {data.futureAdditions}</p>
+            <p><strong>How AI helped:</strong> {data.aiHelp}</p>
           </div>
         );
       case 'Presentations & Retro':

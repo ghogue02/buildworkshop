@@ -2,11 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from './supabaseClient';
 
 function StartBuild({ onSave, sessionId }) {
-  const [setup, setSetup] = useState('');
-  const [core, setCore] = useState('');
-  const [ux, setUx] = useState('');
-  const [testing, setTesting] = useState('');
-  const [finalTouches, setFinalTouches] = useState('');
+  const [whatBuilt, setWhatBuilt] = useState('');
+  const [functionality, setFunctionality] = useState('');
+  const [futureAdditions, setFutureAdditions] = useState('');
+  const [aiHelp, setAiHelp] = useState('');
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(true);
 
@@ -28,11 +27,10 @@ function StartBuild({ onSave, sessionId }) {
         }
 
         if (data?.input_data) {
-          setSetup(data.input_data.setup || '');
-          setCore(data.input_data.core || '');
-          setUx(data.input_data.ux || '');
-          setTesting(data.input_data.testing || '');
-          setFinalTouches(data.input_data.finalTouches || '');
+          setWhatBuilt(data.input_data.whatBuilt || '');
+          setFunctionality(data.input_data.functionality || '');
+          setFutureAdditions(data.input_data.futureAdditions || '');
+          setAiHelp(data.input_data.aiHelp || '');
         }
       } catch (error) {
         console.error('Error loading data:', error.message);
@@ -46,11 +44,10 @@ function StartBuild({ onSave, sessionId }) {
 
   const validate = () => {
     let newErrors = {};
-    if (!setup.trim()) newErrors.setup = 'Setup & Planning is required';
-    if (!core.trim()) newErrors.core = 'Core Functionality is required';
-    if (!ux.trim()) newErrors.ux = 'User Experience is required';
-    if (!testing.trim()) newErrors.testing = 'Testing & Refinement is required';
-    if (!finalTouches.trim()) newErrors.finalTouches = 'Final Touches is required';
+    if (!whatBuilt.trim()) newErrors.whatBuilt = 'What you built is required';
+    if (!functionality.trim()) newErrors.functionality = 'Functionality is required';
+    if (!futureAdditions.trim()) newErrors.futureAdditions = 'Future additions is required';
+    if (!aiHelp.trim()) newErrors.aiHelp = 'AI help description is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -65,11 +62,10 @@ function StartBuild({ onSave, sessionId }) {
           session_id: sessionId,
           section_name: 'Start Build',
           input_data: {
-            setup,
-            core,
-            ux,
-            testing,
-            finalTouches
+            whatBuilt,
+            functionality,
+            futureAdditions,
+            aiHelp
           }
         }, {
           onConflict: 'session_id,section_name'
@@ -79,7 +75,7 @@ function StartBuild({ onSave, sessionId }) {
     } catch (error) {
       console.error('Error saving data:', error.message);
     }
-  }, [sessionId, setup, core, ux, testing, finalTouches]);
+  }, [sessionId, whatBuilt, functionality, futureAdditions, aiHelp]);
 
   // Debounce save after 1 second of no changes
   useEffect(() => {
@@ -90,69 +86,93 @@ function StartBuild({ onSave, sessionId }) {
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [setup, core, ux, testing, finalTouches, saveData, loading]);
+  }, [whatBuilt, functionality, futureAdditions, aiHelp, saveData, loading]);
 
   if (loading) {
     return <div>Loading...</div>;
   }
 
   return (
-    <div style={{ marginBottom: '20px', padding: '20px', border: '1px solid white', borderRadius: '8px' }}>
-      <h2>⏱️ 75-Minute AI Product Build Sprint</h2>
-      <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-        {errors.setup && <p style={{ color: 'red' }}>{errors.setup}</p>}
-        <label htmlFor="setup">⚙️ Setup & Planning (15 min)</label>
-        <textarea
-          id="setup"
-          value={setup}
-          onChange={(e) => setSetup(e.target.value)}
-          placeholder="Choose platform, identify proof of concept features, have a rough flowchart"
-          style={{ marginBottom: '10px', padding: '8px', borderRadius: '4px', border: '1px solid white', backgroundColor: 'black', color: 'white', height: '100px' }}
-        />
+    <div style={{ 
+      display: 'flex', 
+      gap: '20px',
+      width: '100%',
+      maxWidth: '1200px',
+      margin: '0 auto'
+    }}>
+      {/* Left Panel - Instructions */}
+      <div style={{ 
+        flex: '0 0 300px',
+        padding: '20px',
+        border: '1px solid white',
+        borderRadius: '8px',
+        backgroundColor: '#1a1a1a',
+        height: 'fit-content'
+      }}>
+        <h3 style={{ color: '#4CAF50', marginTop: 0 }}>⏱️ 60-Minute Build Sprint</h3>
+        
+        <div style={{ marginBottom: '20px' }}>
+          <p style={{ 
+            marginBottom: '20px',
+            lineHeight: '1.6' 
+          }}>
+            <strong>Exercise:</strong>
+          </p>
+          <p style={{ marginBottom: '20px', lineHeight: '1.6' }}>
+            Use AI to build a website that displays your problem statement. This can be as simple or as complex as you want. You can use AI to add style (color, fonts, etc) to the website. Feel free to be creative. Do not write any code/syntax. Use AI to troubleshoot.
+          </p>
+          <p style={{ marginBottom: '20px', lineHeight: '1.6' }}>
+            If you complete part 1, feel free to explore. Try building a simple demo or generate mockups of your MVP. You can start to build your MVP or create a compelling way to present the solution.
+          </p>
+        </div>
+      </div>
 
-        {errors.core && <p style={{ color: 'red' }}>{errors.core}</p>}
-        <label htmlFor="core">🧩 Core Functionality (25 min)</label>
-        <textarea
-          id="core"
-          value={core}
-          onChange={(e) => setCore(e.target.value)}
-          placeholder="Build a place for inputs, basic AI use, a minimal interface, and a way to store data"
-          style={{ marginBottom: '10px', padding: '8px', borderRadius: '4px', border: '1px solid white', backgroundColor: 'black', color: 'white', height: '100px' }}
-        />
+      {/* Right Panel - Form */}
+      <div style={{ 
+        flex: 1,
+        marginBottom: '20px', 
+        padding: '20px', 
+        border: '1px solid white', 
+        borderRadius: '8px' 
+      }}>
+        <h2>Build Progress</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+          {errors.whatBuilt && <p style={{ color: 'red' }}>{errors.whatBuilt}</p>}
+          <label htmlFor="whatBuilt">What did you build?</label>
+          <textarea
+            id="whatBuilt"
+            value={whatBuilt}
+            onChange={(e) => setWhatBuilt(e.target.value)}
+            style={{ marginBottom: '10px', padding: '8px', borderRadius: '4px', border: '1px solid white', backgroundColor: 'black', color: 'white', height: '100px' }}
+          />
 
-        {errors.ux && <p style={{ color: 'red' }}>{errors.ux}</p>}
-        <label htmlFor="ux">👤 User Experience (15 min)</label>
-        <textarea
-          id="ux"
-          value={ux}
-          onChange={(e) => setUx(e.target.value)}
-          placeholder="Build the interface, adjust slightly using AI prompts, ensure user experience makes sense"
-          style={{ marginBottom: '10px', padding: '8px', borderRadius: '4px', border: '1px solid white', backgroundColor: 'black', color: 'white', height: '100px' }}
-        />
+          {errors.functionality && <p style={{ color: 'red' }}>{errors.functionality}</p>}
+          <label htmlFor="functionality">What functionality did you get in your product?</label>
+          <textarea
+            id="functionality"
+            value={functionality}
+            onChange={(e) => setFunctionality(e.target.value)}
+            style={{ marginBottom: '10px', padding: '8px', borderRadius: '4px', border: '1px solid white', backgroundColor: 'black', color: 'white', height: '100px' }}
+          />
 
-        {errors.testing && <p style={{ color: 'red' }}>{errors.testing}</p>}
-        <label htmlFor="testing">🔍 Testing & Refinement (10 min)</label>
-        <textarea
-          id="testing"
-          value={testing}
-          onChange={(e) => setTesting(e.target.value)}
-          placeholder="Test with sample data, fix bugs that pop up with AI, simplify areas that break down too quickly"
-          style={{ marginBottom: '10px', padding: '8px', borderRadius: '4px', border: '1px solid white', backgroundColor: 'black', color: 'white', height: '100px' }}
-        />
+          {errors.futureAdditions && <p style={{ color: 'red' }}>{errors.futureAdditions}</p>}
+          <label htmlFor="futureAdditions">What would you try to do if you had more time?</label>
+          <textarea
+            id="futureAdditions"
+            value={futureAdditions}
+            onChange={(e) => setFutureAdditions(e.target.value)}
+            style={{ marginBottom: '10px', padding: '8px', borderRadius: '4px', border: '1px solid white', backgroundColor: 'black', color: 'white', height: '100px' }}
+          />
 
-        {errors.finalTouches && <p style={{ color: 'red' }}>{errors.finalTouches}</p>}
-        <label htmlFor="finalTouches">🎬 Final Touches (10 min)</label>
-        <textarea
-          id="finalTouches"
-          value={finalTouches}
-          onChange={(e) => setFinalTouches(e.target.value)}
-          placeholder="Add welcome screen/instructions, finalize for demo, practice explanation"
-          style={{ marginBottom: '10px', padding: '8px', borderRadius: '4px', border: '1px solid white', backgroundColor: 'black', color: 'white', height: '100px' }}
-        />
-
-        <p style={{ marginTop: '10px', fontStyle: 'italic' }}>
-          💪 Remember: Focus on demonstrating your core concept, not building everything!
-        </p>
+          {errors.aiHelp && <p style={{ color: 'red' }}>{errors.aiHelp}</p>}
+          <label htmlFor="aiHelp">How did AI help you build?</label>
+          <textarea
+            id="aiHelp"
+            value={aiHelp}
+            onChange={(e) => setAiHelp(e.target.value)}
+            style={{ marginBottom: '10px', padding: '8px', borderRadius: '4px', border: '1px solid white', backgroundColor: 'black', color: 'white', height: '100px' }}
+          />
+        </div>
       </div>
     </div>
   );
