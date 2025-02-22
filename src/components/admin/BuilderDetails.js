@@ -25,7 +25,7 @@ function BuilderDetails({ builder }) {
       }
 
       if (data) {
-        setAdminNotes(data.notes);
+        setAdminNotes(data.notes || '');
       } else {
         setAdminNotes('');
       }
@@ -41,15 +41,38 @@ function BuilderDetails({ builder }) {
     setSaveStatus('');
 
     try {
-      const { error } = await supabase
+      // First try to update
+      const { data: existingData, error: fetchError } = await supabase
         .from('admin_notes')
-        .upsert({
-          session_id: builder.sessionId,
-          notes: adminNotes,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'session_id'
-        });
+        .select('id')
+        .eq('session_id', builder.sessionId)
+        .single();
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        throw fetchError;
+      }
+
+      let error;
+      if (existingData) {
+        // Update existing record
+        const { error: updateError } = await supabase
+          .from('admin_notes')
+          .update({
+            notes: adminNotes,
+            updated_at: new Date().toISOString()
+          })
+          .eq('session_id', builder.sessionId);
+        error = updateError;
+      } else {
+        // Insert new record
+        const { error: insertError } = await supabase
+          .from('admin_notes')
+          .insert({
+            session_id: builder.sessionId,
+            notes: adminNotes
+          });
+        error = insertError;
+      }
 
       if (error) throw error;
 
