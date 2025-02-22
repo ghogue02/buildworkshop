@@ -4,7 +4,7 @@ import { supabase } from './supabaseClient';
 import ProblemDefinition from './ProblemDefinition';
 import MVPPlanner from './MVPPlanner';
 import GiveGetFeedback from './GiveGetFeedback';
-import RefineIdea from './RefineIdea';
+import RefineYourMVP from './RefineYourMVP';
 import StartBuild from './StartBuild';
 import PresentationsRetro from './PresentationsRetro';
 
@@ -16,18 +16,18 @@ const schedule = [
     name: 'Workshop',
     items: [
       { name: 'Introducing the workshop', duration: '0:05', start: '10:40 AM', end: '10:45 AM' },
-      { name: 'Analyze & Research', duration: '0:45', start: '10:45 AM', end: '11:30 AM' },
-      { name: 'Develop the MVP Product Idea', duration: '0:30', start: '11:30 AM', end: '12:00 PM' },
-      { name: 'Break', duration: '0:10', start: '12:00 PM', end: '12:10 PM' },
-      { name: 'Give & Get Feedback', duration: '0:30', start: '12:10 PM', end: '12:40 PM' },
-      { name: 'Refine your product MVP', duration: '0:20', start: '12:40 PM', end: '1:00 PM' },
-      { name: 'Lunch!', duration: '0:30', start: '1:00 PM', end: '1:30 PM', highlight: true },
-      { name: 'Build!', duration: '1:00', start: '1:30 PM', end: '2:30 PM' },
-      { name: 'Break + Prep', duration: '0:15', start: '2:30 PM', end: '2:45 PM' },
+      { name: 'Analyze & Research', duration: '0:20', start: '10:45 AM', end: '11:05 AM' },
+      { name: 'Develop the MVP Product Idea', duration: '0:30', start: '11:05 AM', end: '11:35 AM' },
+      { name: 'Break', duration: '0:10', start: '11:35 AM', end: '11:45 AM' },
+      { name: 'Give & Get Feedback', duration: '0:30', start: '11:45 AM', end: '12:15 PM' },
+      { name: 'Refine your product MVP', duration: '0:20', start: '12:15 PM', end: '12:35 PM' },
+      { name: 'Lunch!', duration: '0:30', start: '12:35 PM', end: '1:05 PM', highlight: true },
+      { name: 'Build!', duration: '1:00', start: '1:05 PM', end: '2:05 PM' },
+      { name: 'Break + Prep', duration: '0:15', start: '2:05 PM', end: '2:20 PM' },
     ]
   },
-  { id: 3, name: 'Presentation + Retro', duration: '0:45', start: '2:45 PM', end: '3:30 PM' },
-  { id: 4, name: 'Closing', duration: '0:15', start: '3:30 PM', end: '3:45 PM' }
+  { id: 3, name: 'Presentation + Retro', duration: '0:45', start: '2:20 PM', end: '3:05 PM' },
+  { id: 4, name: 'Closing', duration: '0:15', start: '3:05 PM', end: '3:20 PM' }
 ];
 
 function App() {
@@ -45,7 +45,7 @@ function App() {
     'Problem Definition',
     'MVP Planner',
     'Give & Get Feedback',
-    'Refine Idea',
+    'Refine Your MVP',
     'Start Build',
     'Presentations & Retro'
   ];
@@ -316,8 +316,8 @@ function App() {
       case 'MVP Planner':
         return 'givegetfeedback';
       case 'Give & Get Feedback':
-        return 'refineidea';
-      case 'Refine Idea':
+        return 'refineyourmvp';
+      case 'Refine Your MVP':
         return 'startbuild';
       case 'Start Build':
         return 'presentationsretro';
@@ -462,18 +462,18 @@ function App() {
               Give & Get Feedback
             </button>
             <button
-              onClick={() => setCurrentSection('refineidea')}
+              onClick={() => setCurrentSection('refineyourmvp')}
               style={{
                 padding: '10px 20px',
                 borderRadius: '4px',
                 border: 'none',
-                backgroundColor: currentSection === 'refineidea' ? 'white' : 'black',
-                color: currentSection === 'refineidea' ? 'black' : 'white',
+                backgroundColor: currentSection === 'refineyourmvp' ? 'white' : 'black',
+                color: currentSection === 'refineyourmvp' ? 'black' : 'white',
                 cursor: 'pointer',
-                fontWeight: currentSection === 'refineidea' ? 'bold' : 'normal',
+                fontWeight: currentSection === 'refineyourmvp' ? 'bold' : 'normal',
               }}
             >
-              Refine Idea
+              Refine Your MVP
             </button>
             <button
               onClick={() => setCurrentSection('startbuild')}
@@ -600,8 +600,8 @@ function App() {
         <GiveGetFeedback onSave={handleSectionSave} sessionId={sessionId} />
       )}
 
-      {currentSection === 'refineidea' && (
-        <RefineIdea onSave={handleSectionSave} sessionId={sessionId} />
+      {currentSection === 'refineyourmvp' && (
+        <RefineYourMVP onSave={handleSectionSave} sessionId={sessionId} />
       )}
 
       {currentSection === 'startbuild' && (
