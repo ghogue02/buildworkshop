@@ -1,17 +1,17 @@
 {
   "files": {
     "main.css": "/buildworkshop/static/css/main.ff6e8c51.css",
-    "main.js": "/buildworkshop/static/js/main.be19556b.js",
+    "main.js": "/buildworkshop/static/js/main.156f5b19.js",
     "static/js/952.ba4d7873.chunk.js": "/buildworkshop/static/js/952.ba4d7873.chunk.js",
     "static/js/453.b6f8f585.chunk.js": "/buildworkshop/static/js/453.b6f8f585.chunk.js",
     "index.html": "/buildworkshop/index.html",
     "main.ff6e8c51.css.map": "/buildworkshop/static/css/main.ff6e8c51.css.map",
-    "main.be19556b.js.map": "/buildworkshop/static/js/main.be19556b.js.map",
+    "main.156f5b19.js.map": "/buildworkshop/static/js/main.156f5b19.js.map",
     "952.ba4d7873.chunk.js.map": "/buildworkshop/static/js/952.ba4d7873.chunk.js.map",
     "453.b6f8f585.chunk.js.map": "/buildworkshop/static/js/453.b6f8f585.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.ff6e8c51.css",
-    "static/js/main.be19556b.js"
+    "static/js/main.156f5b19.js"
   ]
 }
