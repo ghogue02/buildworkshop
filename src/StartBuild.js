@@ -21,9 +21,9 @@ function StartBuild({ onSave, sessionId }) {
           .select('input_data')
           .eq('session_id', sessionId)
           .eq('section_name', 'Start Build')
-          .maybeSingle(); // Changed from single() to maybeSingle()
+          .maybeSingle();
 
-        if (error && error.code !== 'PGRST116') { // Only throw if it's not a "no rows returned" error
+        if (error && error.code !== 'PGRST116') {
           throw error;
         }
 
@@ -98,15 +98,15 @@ function StartBuild({ onSave, sessionId }) {
 
   return (
     <div style={{ marginBottom: '20px', padding: '20px', border: '1px solid white', borderRadius: '8px' }}>
-      <h2>60-Minute AI Product Build Sprint</h2>
+      <h2>⏱️ 75-Minute AI Product Build Sprint</h2>
       <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
         {errors.setup && <p style={{ color: 'red' }}>{errors.setup}</p>}
-        <label htmlFor="setup">⚙️ Setup & Planning (10 min)</label>
+        <label htmlFor="setup">⚙️ Setup & Planning (15 min)</label>
         <textarea
           id="setup"
           value={setup}
           onChange={(e) => setSetup(e.target.value)}
-          placeholder="Choose platform, identify MVP features, create flowchart"
+          placeholder="Choose platform, identify proof of concept features, have a rough flowchart"
           style={{ marginBottom: '10px', padding: '8px', borderRadius: '4px', border: '1px solid white', backgroundColor: 'black', color: 'white', height: '100px' }}
         />
 
@@ -116,7 +116,7 @@ function StartBuild({ onSave, sessionId }) {
           id="core"
           value={core}
           onChange={(e) => setCore(e.target.value)}
-          placeholder="Build inputs, basic AI algorithm, interface, data storage"
+          placeholder="Build a place for inputs, basic AI use, a minimal interface, and a way to store data"
           style={{ marginBottom: '10px', padding: '8px', borderRadius: '4px', border: '1px solid white', backgroundColor: 'black', color: 'white', height: '100px' }}
         />
 
@@ -126,7 +126,7 @@ function StartBuild({ onSave, sessionId }) {
           id="ux"
           value={ux}
           onChange={(e) => setUx(e.target.value)}
-          placeholder="Design interface, add prompts/feedback, improve clarity"
+          placeholder="Build the interface, adjust slightly using AI prompts, ensure user experience makes sense"
           style={{ marginBottom: '10px', padding: '8px', borderRadius: '4px', border: '1px solid white', backgroundColor: 'black', color: 'white', height: '100px' }}
         />
 
@@ -136,7 +136,7 @@ function StartBuild({ onSave, sessionId }) {
           id="testing"
           value={testing}
           onChange={(e) => setTesting(e.target.value)}
-          placeholder="Test with sample data, fix bugs, simplify complex parts"
+          placeholder="Test with sample data, fix bugs that pop up with AI, simplify areas that break down too quickly"
           style={{ marginBottom: '10px', padding: '8px', borderRadius: '4px', border: '1px solid white', backgroundColor: 'black', color: 'white', height: '100px' }}
         />
 
@@ -146,7 +146,7 @@ function StartBuild({ onSave, sessionId }) {
           id="finalTouches"
           value={finalTouches}
           onChange={(e) => setFinalTouches(e.target.value)}
-          placeholder="Add welcome screen, prepare demo, practice explanation"
+          placeholder="Add welcome screen/instructions, finalize for demo, practice explanation"
           style={{ marginBottom: '10px', padding: '8px', borderRadius: '4px', border: '1px solid white', backgroundColor: 'black', color: 'white', height: '100px' }}
         />
 
