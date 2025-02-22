@@ -7,7 +7,6 @@ import ShareFeedback from './ShareFeedback';
 import RefineIdea from './RefineIdea';
 import StartBuild from './StartBuild';
 import PresentationsRetro from './PresentationsRetro';
-import AIChatBot from './components/AIChatBot';
 
 const schedule = [
   { id: 0, name: 'Welcome & Intro: Pursuit & AI', duration: '0:10', start: '10:15 AM', end: '10:25 AM' },
@@ -421,20 +420,6 @@ function App() {
         {sessionId && (
           <>
             <button
-              onClick={() => setCurrentSection('aichat')}
-              style={{
-                padding: '10px 20px',
-                borderRadius: '4px',
-                border: 'none',
-                backgroundColor: currentSection === 'aichat' ? 'white' : '#4CAF50',
-                color: 'white',
-                cursor: 'pointer',
-                fontWeight: currentSection === 'aichat' ? 'bold' : 'normal',
-              }}
-            >
-              AI Chat
-            </button>
-            <button
               onClick={() => setCurrentSection('problemdefinition')}
               style={{
                 padding: '10px 20px',
@@ -601,14 +586,6 @@ function App() {
 
           {renderSchedule()}
         </div>
-      )}
-
-      {currentSection === 'aichat' && (
-        <AIChatBot
-          currentSection={currentSection}
-          onUpdateSectionData={handleSectionSave}
-          sessionId={sessionId}
-        />
       )}
 
       {currentSection === 'problemdefinition' && (
