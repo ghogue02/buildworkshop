@@ -21,9 +21,9 @@ function ProblemDefinition({ onSave, sessionId }) {
           .select('input_data')
           .eq('session_id', sessionId)
           .eq('section_name', 'Problem Definition')
-          .maybeSingle(); // Use maybeSingle instead of single
+          .maybeSingle();
 
-        if (error && error.code !== 'PGRST116') { // Only throw if it's not a "no rows returned" error
+        if (error && error.code !== 'PGRST116') {
           throw error;
         }
 
@@ -46,12 +46,11 @@ function ProblemDefinition({ onSave, sessionId }) {
 
   const validate = () => {
     let newErrors = {};
-    if (!summary.trim()) {
-      newErrors.summary = 'Summary is required';
-    }
-    if (!context.trim()) {
-      newErrors.context = 'Context is required';
-    }
+    if (!summary.trim()) newErrors.summary = 'Summary is required';
+    if (!context.trim()) newErrors.context = 'Context is required';
+    if (!impact.trim()) newErrors.impact = 'Impact is required';
+    if (!rootCauses.trim()) newErrors.rootCauses = 'Root Causes is required';
+    if (!outcome.trim()) newErrors.outcome = 'Outcome is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -98,55 +97,111 @@ function ProblemDefinition({ onSave, sessionId }) {
   }
 
   return (
-    <div style={{ marginBottom: '20px', padding: '20px', border: '1px solid white', borderRadius: '8px' }}>
-      <h2>Problem Definition</h2>
-      <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-        {errors.summary && <p style={{ color: 'red' }}>{errors.summary}</p>}
-        <label htmlFor="summary">Summary (One-sentence description)</label>
-        <textarea
-          id="summary"
-          value={summary}
-          onChange={(e) => setSummary(e.target.value)}
-          placeholder="e.g., Chaotic mornings cause stress and lateness"
-          style={{ marginBottom: '10px', padding: '8px', borderRadius: '4px', border: '1px solid white', backgroundColor: 'black', color: 'white', height: '100px' }}
-        />
+    <div style={{ 
+      display: 'flex', 
+      gap: '20px',
+      width: '100%',
+      maxWidth: '1200px',
+      margin: '0 auto'
+    }}>
+      {/* Left Panel - P.A.I.N. Framework */}
+      <div style={{ 
+        flex: '0 0 300px',
+        padding: '20px',
+        border: '1px solid white',
+        borderRadius: '8px',
+        backgroundColor: '#1a1a1a',
+        height: 'fit-content'
+      }}>
+        <h3 style={{ color: '#4CAF50', marginTop: 0 }}>Problem Solving Framework</h3>
+        
+        <p style={{ marginBottom: '20px', lineHeight: '1.6' }}>
+          It's critical to learn how to think about problems and solve them conceptually.
+          This will be even more important in a future where AI does the coding.
+          You'll need to decide on the best option and how to actually solve the problem.
+        </p>
 
-        {errors.context && <p style={{ color: 'red' }}>{errors.context}</p>}
-        <label htmlFor="context">Context (Why it happens)</label>
-        <textarea
-          id="context"
-          value={context}
-          onChange={(e) => setContext(e.target.value)}
-          placeholder="e.g., No planning, hitting snooze, rushing through breakfast"
-          style={{ marginBottom: '10px', padding: '8px', borderRadius: '4px', border: '1px solid white', backgroundColor: 'black', color: 'white', height: '100px' }}
-        />
+        <p style={{ marginBottom: '20px', lineHeight: '1.6' }}>
+          There are many problem solving frameworks.
+          Today, we'll use: <strong>P.A.I.N.</strong>
+        </p>
 
-        <label htmlFor="impact">Impact (Who it affects and consequences)</label>
-        <textarea
-          id="impact"
-          value={impact}
-          onChange={(e) => setImpact(e.target.value)}
-          placeholder="e.g., Students/workers have less energy and focus"
-          style={{ marginBottom: '10px', padding: '8px', borderRadius: '4px', border: '1px solid white', backgroundColor: 'black', color: 'white', height: '100px' }}
-        />
+        <div style={{ marginLeft: '10px' }}>
+          <p style={{ marginBottom: '10px' }}>
+            <strong style={{ color: '#4CAF50' }}>P</strong>roblem: State and define the problem
+          </p>
+          <p style={{ marginBottom: '10px' }}>
+            <strong style={{ color: '#4CAF50' }}>A</strong>nalyze: Identify root causes and constraints
+          </p>
+          <p style={{ marginBottom: '10px' }}>
+            <strong style={{ color: '#4CAF50' }}>I</strong>deate: Brainstorm solutions
+          </p>
+          <p style={{ marginBottom: '10px' }}>
+            <strong style={{ color: '#4CAF50' }}>N</strong>ext Steps: Define the implementation
+          </p>
+        </div>
+      </div>
 
-        <label htmlFor="rootCauses">Root Causes (Main reasons behind the problem)</label>
-        <textarea
-          id="rootCauses"
-          value={rootCauses}
-          onChange={(e) => setRootCauses(e.target.value)}
-          placeholder="e.g., Poor planning, no structure, distractions"
-          style={{ marginBottom: '10px', padding: '8px', borderRadius: '4px', border: '1px solid white', backgroundColor: 'black', color: 'white', height: '100px' }}
-        />
+      {/* Right Panel - Problem Definition Form */}
+      <div style={{ 
+        flex: 1,
+        marginBottom: '20px', 
+        padding: '20px', 
+        border: '1px solid white', 
+        borderRadius: '8px' 
+      }}>
+        <h2>Problem Definition</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+          {errors.summary && <p style={{ color: 'red' }}>{errors.summary}</p>}
+          <label htmlFor="summary">Summary (One-sentence description)</label>
+          <textarea
+            id="summary"
+            value={summary}
+            onChange={(e) => setSummary(e.target.value)}
+            placeholder="e.g., Chaotic mornings cause stress and lateness"
+            style={{ marginBottom: '10px', padding: '8px', borderRadius: '4px', border: '1px solid white', backgroundColor: 'black', color: 'white', height: '100px' }}
+          />
 
-        <label htmlFor="outcome">Outcome (What success looks like)</label>
-        <textarea
-          id="outcome"
-          value={outcome}
-          onChange={(e) => setOutcome(e.target.value)}
-          placeholder="e.g., People follow routines and start days energized"
-          style={{ marginBottom: '10px', padding: '8px', borderRadius: '4px', border: '1px solid white', backgroundColor: 'black', color: 'white', height: '100px' }}
-        />
+          {errors.context && <p style={{ color: 'red' }}>{errors.context}</p>}
+          <label htmlFor="context">Context (Why it happens)</label>
+          <textarea
+            id="context"
+            value={context}
+            onChange={(e) => setContext(e.target.value)}
+            placeholder="e.g., No planning, hitting snooze, rushing through breakfast"
+            style={{ marginBottom: '10px', padding: '8px', borderRadius: '4px', border: '1px solid white', backgroundColor: 'black', color: 'white', height: '100px' }}
+          />
+
+          {errors.impact && <p style={{ color: 'red' }}>{errors.impact}</p>}
+          <label htmlFor="impact">Impact (Who it affects and consequences)</label>
+          <textarea
+            id="impact"
+            value={impact}
+            onChange={(e) => setImpact(e.target.value)}
+            placeholder="e.g., Students/workers have less energy and focus"
+            style={{ marginBottom: '10px', padding: '8px', borderRadius: '4px', border: '1px solid white', backgroundColor: 'black', color: 'white', height: '100px' }}
+          />
+
+          {errors.rootCauses && <p style={{ color: 'red' }}>{errors.rootCauses}</p>}
+          <label htmlFor="rootCauses">Root Causes (Main reasons behind the problem)</label>
+          <textarea
+            id="rootCauses"
+            value={rootCauses}
+            onChange={(e) => setRootCauses(e.target.value)}
+            placeholder="e.g., Poor planning, no structure, distractions"
+            style={{ marginBottom: '10px', padding: '8px', borderRadius: '4px', border: '1px solid white', backgroundColor: 'black', color: 'white', height: '100px' }}
+          />
+
+          {errors.outcome && <p style={{ color: 'red' }}>{errors.outcome}</p>}
+          <label htmlFor="outcome">Outcome (What success looks like)</label>
+          <textarea
+            id="outcome"
+            value={outcome}
+            onChange={(e) => setOutcome(e.target.value)}
+            placeholder="e.g., People follow routines and start days energized"
+            style={{ marginBottom: '10px', padding: '8px', borderRadius: '4px', border: '1px solid white', backgroundColor: 'black', color: 'white', height: '100px' }}
+          />
+        </div>
       </div>
     </div>
   );
