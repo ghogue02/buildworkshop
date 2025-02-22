@@ -21,9 +21,11 @@ function ProblemDefinition({ onSave, sessionId }) {
           .select('input_data')
           .eq('session_id', sessionId)
           .eq('section_name', 'Problem Definition')
-          .single();
+          .maybeSingle(); // Use maybeSingle instead of single
 
-        if (error) throw error;
+        if (error && error.code !== 'PGRST116') { // Only throw if it's not a "no rows returned" error
+          throw error;
+        }
 
         if (data?.input_data) {
           setSummary(data.input_data.summary || '');

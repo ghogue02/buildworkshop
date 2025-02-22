@@ -21,9 +21,11 @@ function AISolutionPlanner({ onSave, sessionId }) {
           .select('input_data')
           .eq('session_id', sessionId)
           .eq('section_name', 'AI Solution Planner')
-          .single();
+          .maybeSingle(); // Changed from single() to maybeSingle()
 
-        if (error) throw error;
+        if (error && error.code !== 'PGRST116') { // Only throw if it's not a "no rows returned" error
+          throw error;
+        }
 
         if (data?.input_data) {
           setAiOptions(data.input_data.aiOptions || ['', '', '']);
