@@ -344,30 +344,32 @@ function App() {
         {schedule.map((item) => (
           <div key={item.id}>
             <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between',
+              display: 'grid',
+              gridTemplateColumns: '1fr 100px 200px',
               alignItems: 'center',
+              gap: '10px',
               padding: '5px 0'
             }}>
               <span style={{ fontWeight: 'bold' }}>{item.name}</span>
-              <span style={{ color: '#888' }}>{item.duration}</span>
-              <span>{item.start} - {item.end}</span>
+              <span style={{ color: '#888', textAlign: 'center' }}>{item.duration}</span>
+              <span style={{ textAlign: 'right' }}>{item.start} - {item.end}</span>
             </div>
             {item.items && (
               <div style={{ marginLeft: '20px' }}>
                 {item.items.map((subItem, index) => (
                   <div key={index} style={{ 
-                    display: 'flex',
-                    justifyContent: 'space-between',
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 100px 200px',
                     alignItems: 'center',
+                    gap: '10px',
                     padding: '5px 0',
                     backgroundColor: subItem.highlight ? '#4CAF50' : 'transparent',
                     borderRadius: '4px',
                     padding: subItem.highlight ? '8px' : '5px 0'
                   }}>
                     <span>{subItem.name}</span>
-                    <span style={{ color: '#888' }}>{subItem.duration}</span>
-                    <span>{subItem.start} - {subItem.end}</span>
+                    <span style={{ color: '#888', textAlign: 'center' }}>{subItem.duration}</span>
+                    <span style={{ textAlign: 'right' }}>{subItem.start} - {subItem.end}</span>
                   </div>
                 ))}
               </div>
