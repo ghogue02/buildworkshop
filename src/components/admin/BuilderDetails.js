@@ -3,6 +3,7 @@ import { supabase } from '../../supabaseClient';
 
 function BuilderDetails({ builder }) {
   const [adminNotes, setAdminNotes] = useState('');
+  const [lastUpdated, setLastUpdated] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
 
@@ -16,7 +17,7 @@ function BuilderDetails({ builder }) {
     try {
       const { data, error } = await supabase
         .from('admin_notes')
-        .select('notes')
+        .select('notes, updated_at')
         .eq('session_id', builder.sessionId)
         .single();
 
@@ -26,8 +27,10 @@ function BuilderDetails({ builder }) {
 
       if (data) {
         setAdminNotes(data.notes || '');
+        setLastUpdated(data.updated_at);
       } else {
         setAdminNotes('');
+        setLastUpdated(null);
       }
     } catch (error) {
       console.error('Error fetching admin notes:', error);
@@ -76,6 +79,9 @@ function BuilderDetails({ builder }) {
 
       if (error) throw error;
 
+      // Update lastUpdated timestamp
+      const now = new Date().toISOString();
+      setLastUpdated(now);
       setSaveStatus('Notes saved successfully');
       setTimeout(() => setSaveStatus(''), 3000);
     } catch (error) {
@@ -207,7 +213,19 @@ function BuilderDetails({ builder }) {
         border: '1px solid #333',
         borderRadius: '8px'
       }}>
-        <h3 style={{ marginTop: 0, color: '#4CAF50' }}>Admin Notes</h3>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '10px'
+        }}>
+          <h3 style={{ margin: 0, color: '#4CAF50' }}>Admin Notes</h3>
+          {lastUpdated && (
+            <span style={{ fontSize: '12px', color: '#888' }}>
+              Last updated: {new Date(lastUpdated).toLocaleString()}
+            </span>
+          )}
+        </div>
         <textarea
           value={adminNotes}
           onChange={(e) => setAdminNotes(e.target.value)}
