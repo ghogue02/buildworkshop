@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import './App.css';
 import { supabase } from './supabaseClient';
 import ProblemDefinition from './ProblemDefinition';
@@ -7,6 +7,7 @@ import GiveGetFeedback from './GiveGetFeedback';
 import RefineYourMVP from './RefineYourMVP';
 import StartBuild from './StartBuild';
 import PresentationsRetro from './PresentationsRetro';
+import AdminDashboard from './components/admin/AdminDashboard';
 
 const schedule = [
   { id: 0, name: 'Welcome & Intro: Pursuit & AI', duration: '0:10', start: '10:15 AM', end: '10:25 AM' },
@@ -31,6 +32,15 @@ const schedule = [
 ];
 
 function App() {
+  const isAdmin = useMemo(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('mode') === 'admin';
+  }, []);
+
+  if (isAdmin) {
+    return <AdminDashboard />;
+  }
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [currentSection, setCurrentSection] = useState('userinfo');
