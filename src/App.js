@@ -3,7 +3,7 @@ import './App.css';
 import { supabase } from './supabaseClient';
 import ProblemDefinition from './ProblemDefinition';
 import MVPPlanner from './MVPPlanner';
-import ShareFeedback from './ShareFeedback';
+import GiveGetFeedback from './GiveGetFeedback';
 import RefineIdea from './RefineIdea';
 import StartBuild from './StartBuild';
 import PresentationsRetro from './PresentationsRetro';
@@ -44,7 +44,7 @@ function App() {
     'User Info',
     'Problem Definition',
     'MVP Planner',
-    'Share Feedback',
+    'Give & Get Feedback',
     'Refine Idea',
     'Start Build',
     'Presentations & Retro'
@@ -117,7 +117,7 @@ function App() {
             <p><strong>Value Proposition:</strong> {data.valueProposition}</p>
           </div>
         );
-      case 'Share Feedback':
+      case 'Give & Get Feedback':
         return (
           <div>
             <p><strong>Share:</strong> {data.share}</p>
@@ -314,8 +314,8 @@ function App() {
       case 'Problem Definition':
         return 'mvpplanner';
       case 'MVP Planner':
-        return 'sharefeedback';
-      case 'Share Feedback':
+        return 'givegetfeedback';
+      case 'Give & Get Feedback':
         return 'refineidea';
       case 'Refine Idea':
         return 'startbuild';
@@ -448,18 +448,18 @@ function App() {
               MVP Planner
             </button>
             <button
-              onClick={() => setCurrentSection('sharefeedback')}
+              onClick={() => setCurrentSection('givegetfeedback')}
               style={{
                 padding: '10px 20px',
                 borderRadius: '4px',
                 border: 'none',
-                backgroundColor: currentSection === 'sharefeedback' ? 'white' : 'black',
-                color: currentSection === 'sharefeedback' ? 'black' : 'white',
+                backgroundColor: currentSection === 'givegetfeedback' ? 'white' : 'black',
+                color: currentSection === 'givegetfeedback' ? 'black' : 'white',
                 cursor: 'pointer',
-                fontWeight: currentSection === 'sharefeedback' ? 'bold' : 'normal',
+                fontWeight: currentSection === 'givegetfeedback' ? 'bold' : 'normal',
               }}
             >
-              Share Feedback
+              Give & Get Feedback
             </button>
             <button
               onClick={() => setCurrentSection('refineidea')}
@@ -596,8 +596,8 @@ function App() {
         <MVPPlanner onSave={handleSectionSave} sessionId={sessionId} />
       )}
 
-      {currentSection === 'sharefeedback' && (
-        <ShareFeedback onSave={handleSectionSave} sessionId={sessionId} />
+      {currentSection === 'givegetfeedback' && (
+        <GiveGetFeedback onSave={handleSectionSave} sessionId={sessionId} />
       )}
 
       {currentSection === 'refineidea' && (
