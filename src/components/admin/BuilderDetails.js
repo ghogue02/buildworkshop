@@ -1,6 +1,68 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../../supabaseClient';
 
 function BuilderDetails({ builder }) {
+  const [adminNotes, setAdminNotes] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('');
+
+  useEffect(() => {
+    if (builder) {
+      fetchAdminNotes();
+    }
+  }, [builder]);
+
+  const fetchAdminNotes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('admin_notes')
+        .select('notes')
+        .eq('session_id', builder.sessionId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      if (data) {
+        setAdminNotes(data.notes);
+      } else {
+        setAdminNotes('');
+      }
+    } catch (error) {
+      console.error('Error fetching admin notes:', error);
+    }
+  };
+
+  const saveAdminNotes = async () => {
+    if (!builder) return;
+
+    setIsSaving(true);
+    setSaveStatus('');
+
+    try {
+      const { error } = await supabase
+        .from('admin_notes')
+        .upsert({
+          session_id: builder.sessionId,
+          notes: adminNotes,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'session_id'
+        });
+
+      if (error) throw error;
+
+      setSaveStatus('Notes saved successfully');
+      setTimeout(() => setSaveStatus(''), 3000);
+    } catch (error) {
+      console.error('Error saving admin notes:', error);
+      setSaveStatus('Error saving notes');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   if (!builder) return null;
 
   const sectionOrder = [
@@ -111,6 +173,62 @@ function BuilderDetails({ builder }) {
           fontSize: '14px'
         }}>
           {builder.progress.completed} of {builder.progress.total} sections complete
+        </div>
+      </div>
+
+      {/* Admin Notes Section */}
+      <div style={{
+        marginBottom: '30px',
+        padding: '20px',
+        backgroundColor: '#1a1a1a',
+        border: '1px solid #333',
+        borderRadius: '8px'
+      }}>
+        <h3 style={{ marginTop: 0, color: '#4CAF50' }}>Admin Notes</h3>
+        <textarea
+          value={adminNotes}
+          onChange={(e) => setAdminNotes(e.target.value)}
+          placeholder="Add notes about this builder..."
+          style={{
+            width: '100%',
+            minHeight: '100px',
+            padding: '12px',
+            backgroundColor: 'black',
+            color: 'white',
+            border: '1px solid #333',
+            borderRadius: '4px',
+            marginBottom: '10px',
+            resize: 'vertical'
+          }}
+        />
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <button
+            onClick={saveAdminNotes}
+            disabled={isSaving}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#4CAF50',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: isSaving ? 'not-allowed' : 'pointer',
+              opacity: isSaving ? 0.7 : 1
+            }}
+          >
+            {isSaving ? 'Saving...' : 'Save Notes'}
+          </button>
+          {saveStatus && (
+            <span style={{ 
+              color: saveStatus.includes('Error') ? '#ff4444' : '#4CAF50',
+              marginLeft: '10px'
+            }}>
+              {saveStatus}
+            </span>
+          )}
         </div>
       </div>
 
