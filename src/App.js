@@ -1,34 +1,79 @@
 import React, { useMemo } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import AdminLayout from './components/admin/AdminLayout';
 import AdminDashboard from './components/admin/AdminDashboard';
 import ReportDashboard from './components/admin/ReportDashboard';
 import BuilderView from './components/BuilderView';
 
 function App() {
-  const isAdmin = useMemo(() => {
+  const { isAdmin, view } = useMemo(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('mode') === 'admin';
+    return {
+      isAdmin: urlParams.get('mode') === 'admin',
+      view: urlParams.get('view')
+    };
   }, []);
 
   if (!isAdmin) {
     return <BuilderView />;
   }
 
-  // Get the base URL from the homepage in package.json
-  const basename = process.env.PUBLIC_URL || '';
-
+  // Render admin views based on the view parameter
   return (
-    <BrowserRouter basename={basename}>
-      <Routes>
-        <Route path="/" element={<Navigate to="/admin" replace />} />
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<AdminDashboard />} />
-          <Route path="reports" element={<ReportDashboard />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/admin" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: 'black',
+      color: 'white'
+    }}>
+      {/* Navigation Header */}
+      <nav style={{
+        padding: '20px',
+        borderBottom: '1px solid #333',
+        backgroundColor: '#0a0a0a'
+      }}>
+        <div style={{
+          maxWidth: '1200px',
+          margin: '0 auto',
+          display: 'flex',
+          gap: '20px',
+          alignItems: 'center'
+        }}>
+          <a
+            href="?mode=admin"
+            style={{
+              padding: '10px 20px',
+              textDecoration: 'none',
+              color: !view ? '#4CAF50' : 'white',
+              backgroundColor: !view ? '#1a1a1a' : 'transparent',
+              borderRadius: '4px',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            Builders
+          </a>
+          <a
+            href="?mode=admin&view=reports"
+            style={{
+              padding: '10px 20px',
+              textDecoration: 'none',
+              color: view === 'reports' ? '#4CAF50' : 'white',
+              backgroundColor: view === 'reports' ? '#1a1a1a' : 'transparent',
+              borderRadius: '4px',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            AI Reports
+          </a>
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <main style={{
+        maxWidth: '1200px',
+        margin: '0 auto',
+        padding: '20px'
+      }}>
+        {view === 'reports' ? <ReportDashboard /> : <AdminDashboard />}
+      </main>
+    </div>
   );
 }
 
