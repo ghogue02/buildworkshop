@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  LineChart, Line
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import { analyticsService } from '../../services/analyticsService';
 
@@ -71,18 +70,6 @@ function ReportDashboard() {
 
   // Prepare chart data
   const sectionCompletionData = Object.entries(data.metrics.sectionCompletionRates)
-    .map(([name, rate]) => ({
-      name,
-      rate: (rate * 100).toFixed(1)
-    }));
-
-  const timeDistributionData = Object.entries(data.metrics.averageTimePerSection)
-    .map(([name, time]) => ({
-      name,
-      minutes: (time / 60000).toFixed(1)
-    }));
-
-  const dropoffData = Object.entries(data.metrics.dropoffPoints)
     .map(([name, rate]) => ({
       name,
       rate: (rate * 100).toFixed(1)
@@ -159,18 +146,10 @@ function ReportDashboard() {
           value={`${(data.metrics.completionRate * 100).toFixed(1)}%`}
           description="Percentage of builders completing all sections"
         />
-        <MetricCard
-          title="Average Session Duration"
-          value={`${(data.metrics.averageSessionDuration / 60000).toFixed(1)} minutes`}
-          description="Average time spent per builder"
-        />
       </div>
 
       {/* Charts */}
       <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))',
-        gap: '20px',
         marginBottom: '30px'
       }}>
         {/* Section Completion Rates */}
@@ -206,49 +185,10 @@ function ReportDashboard() {
             </ResponsiveContainer>
           </div>
         </div>
-
-        {/* Time Distribution */}
-        <div style={{
-          backgroundColor: '#1a1a1a',
-          borderRadius: '8px',
-          padding: '20px'
-        }}>
-          <h3 style={{ margin: '0 0 20px 0', color: '#4CAF50' }}>
-            Time Distribution (minutes)
-          </h3>
-          <div style={{ height: '300px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={timeDistributionData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                <XAxis
-                  dataKey="name"
-                  angle={-45}
-                  textAnchor="end"
-                  height={100}
-                  stroke="white"
-                />
-                <YAxis stroke="white" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1a1a1a',
-                    border: '1px solid #333',
-                    color: 'white'
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="minutes"
-                  stroke="#4CAF50"
-                  strokeWidth={2}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
       </div>
 
       {/* Dropoff Analysis */}
-      {dropoffData.length > 0 && (
+      {data.metrics.dropoffPoints && Object.keys(data.metrics.dropoffPoints).length > 0 && (
         <div style={{
           backgroundColor: '#1a1a1a',
           borderRadius: '8px',
@@ -260,7 +200,12 @@ function ReportDashboard() {
           </h3>
           <div style={{ height: '300px' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dropoffData}>
+              <BarChart 
+                data={Object.entries(data.metrics.dropoffPoints).map(([name, rate]) => ({
+                  name,
+                  rate: (rate * 100).toFixed(1)
+                }))}
+              >
                 <CartesianGrid strokeDasharray="3 3" stroke="#333" />
                 <XAxis
                   dataKey="name"
