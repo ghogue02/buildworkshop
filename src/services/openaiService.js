@@ -2,15 +2,22 @@ import OpenAI from 'openai';
 
 class OpenAIService {
   constructor() {
-    this.openai = new OpenAI({
-      apiKey: process.env.REACT_APP_OPENAI_API_KEY,
-    });
+    // Don't initialize OpenAI in constructor to avoid exposing API key in build
+    this.openai = null;
     
     // Rate limiting parameters
     this.requestQueue = [];
     this.isProcessing = false;
     this.rateLimit = 10; // requests per minute
     this.rateLimitInterval = 60000; // 1 minute in milliseconds
+  }
+
+  initializeOpenAI(apiKey) {
+    if (!this.openai) {
+      this.openai = new OpenAI({
+        apiKey: apiKey,
+      });
+    }
   }
 
   async processQueue() {
@@ -37,7 +44,12 @@ class OpenAIService {
     });
   }
 
-  async analyzeBuilderData(builderData) {
+  async analyzeBuilderData(builderData, apiKey) {
+    this.initializeOpenAI(apiKey);
+    if (!this.openai) {
+      throw new Error('OpenAI client not initialized. Please provide an API key.');
+    }
+
     const prompt = this.createAnalysisPrompt(builderData);
     
     return this.queueRequest(async () => {
@@ -114,7 +126,12 @@ Format the response as a JSON object with the following structure:
     }
   }
 
-  async generateSummaryReport(analysisResults) {
+  async generateSummaryReport(analysisResults, apiKey) {
+    this.initializeOpenAI(apiKey);
+    if (!this.openai) {
+      throw new Error('OpenAI client not initialized. Please provide an API key.');
+    }
+
     return this.queueRequest(async () => {
       try {
         const completion = await this.openai.chat.completions.create({
@@ -149,7 +166,12 @@ Format the response as a JSON object with the following structure:
     });
   }
 
-  async suggestImprovements(builderData) {
+  async suggestImprovements(builderData, apiKey) {
+    this.initializeOpenAI(apiKey);
+    if (!this.openai) {
+      throw new Error('OpenAI client not initialized. Please provide an API key.');
+    }
+
     return this.queueRequest(async () => {
       try {
         const completion = await this.openai.chat.completions.create({

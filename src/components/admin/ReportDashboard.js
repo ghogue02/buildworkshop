@@ -1,22 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  LineChart, Line, PieChart, Pie, Cell
+  LineChart, Line
 } from 'recharts';
 import { dataAggregationService } from '../../services/dataAggregationService';
+import { config, setOpenAIKey } from '../../config';
 
 function ReportDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [report, setReport] = useState(null);
+  const [apiKey, setApiKey] = useState('');
+  const [showKeyForm, setShowKeyForm] = useState(false);
   const [filters, setFilters] = useState({
     startDate: null,
     endDate: null,
     filterCompleted: false,
     problemCategories: []
   });
-
-  const COLORS = ['#4CAF50', '#2196F3', '#FFC107', '#E91E63', '#9C27B0', '#FF5722', '#795548'];
 
   useEffect(() => {
     loadReport();
@@ -30,10 +31,22 @@ function ReportDashboard() {
       setReport(newReport);
     } catch (error) {
       console.error('Error loading report:', error);
-      setError('Failed to load report data');
+      if (error.message.includes('OpenAI API key not found')) {
+        setShowKeyForm(true);
+        setError('Please enter your OpenAI API key to generate reports');
+      } else {
+        setError('Failed to load report data');
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleApiKeySubmit = async (e) => {
+    e.preventDefault();
+    setOpenAIKey(apiKey);
+    setShowKeyForm(false);
+    await loadReport();
   };
 
   const handleFilterChange = (newFilters) => {
@@ -82,7 +95,55 @@ function ReportDashboard() {
     </div>
   );
 
-  if (error) {
+  if (showKeyForm) {
+    return (
+      <div style={{
+        padding: '40px',
+        maxWidth: '600px',
+        margin: '0 auto',
+        color: 'white'
+      }}>
+        <h2 style={{ marginBottom: '20px' }}>OpenAI API Key Required</h2>
+        <p style={{ marginBottom: '20px', color: '#888' }}>
+          To generate AI-powered reports and insights, please enter your OpenAI API key.
+          This key will only be stored in your browser's memory and will not be saved
+          or transmitted anywhere else.
+        </p>
+        <form onSubmit={handleApiKeySubmit}>
+          <input
+            type="password"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder="Enter your OpenAI API key"
+            style={{
+              width: '100%',
+              padding: '12px',
+              marginBottom: '20px',
+              backgroundColor: '#1a1a1a',
+              border: '1px solid #333',
+              borderRadius: '4px',
+              color: 'white'
+            }}
+          />
+          <button
+            type="submit"
+            style={{
+              padding: '12px 24px',
+              backgroundColor: '#4CAF50',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Save Key & Generate Report
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  if (error && !showKeyForm) {
     return (
       <div style={{ padding: '20px', color: 'red', textAlign: 'center' }}>
         {error}

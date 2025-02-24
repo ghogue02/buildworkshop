@@ -1,5 +1,6 @@
 import { supabase } from '../supabaseClient';
 import { openaiService } from './openaiService';
+import { config } from '../config';
 
 class DataAggregationService {
   constructor() {
@@ -190,17 +191,23 @@ class DataAggregationService {
         return cachedReport.report_data;
       }
 
+      // Get API key from config
+      const apiKey = config.openai.apiKey;
+      if (!apiKey) {
+        throw new Error('OpenAI API key not found in environment variables');
+      }
+
       // Aggregate fresh data
       const aggregatedData = await this.aggregateBuilderData(options);
       
       // Get AI analysis
-      const analysis = await openaiService.analyzeBuilderData(aggregatedData);
+      const analysis = await openaiService.analyzeBuilderData(aggregatedData, apiKey);
       
       // Generate summary
-      const summary = await openaiService.generateSummaryReport(analysis);
+      const summary = await openaiService.generateSummaryReport(analysis, apiKey);
       
       // Get improvement suggestions
-      const improvements = await openaiService.suggestImprovements(aggregatedData);
+      const improvements = await openaiService.suggestImprovements(aggregatedData, apiKey);
 
       // Compile full report
       const report = {
