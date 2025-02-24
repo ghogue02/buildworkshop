@@ -117,7 +117,7 @@ function BuilderInputReport() {
           <div>
             <strong>Completion Rates:</strong>
             <div style={{ marginTop: '10px' }}>
-              {Object.entries(analysis.overview.completionRates).map(([section, rate]) => (
+              {Object.entries(analysis.overview.completionRates || {}).map(([section, rate]) => (
                 <div key={section} style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -150,82 +150,95 @@ function BuilderInputReport() {
       </div>
 
       {/* Problem Definition Analysis */}
-      <div style={{ marginBottom: '40px' }}>
-        <h3 style={{ marginBottom: '20px' }}>Problem Definition Insights</h3>
-        <div style={{ display: 'grid', gap: '20px' }}>
-          <SectionAnalysis
-            title="Common Themes"
-            data={analysis.problemDefinition?.commonThemes}
-            type="themes"
-          />
-          <SectionAnalysis
-            title="Impact Areas"
-            data={analysis.problemDefinition?.impactAreas}
-            type="themes"
-          />
-          <SectionAnalysis
-            title="Problem Complexity"
-            data={analysis.problemDefinition?.complexityLevels}
-            type="complexity"
-          />
+      {analysis.problemDefinition && (
+        <div style={{ marginBottom: '40px' }}>
+          <h3 style={{ marginBottom: '20px' }}>Problem Definition Insights</h3>
+          <div style={{ display: 'grid', gap: '20px' }}>
+            <SectionAnalysis
+              title="Common Themes"
+              data={analysis.problemDefinition.commonThemes}
+              type="themes"
+            />
+            <SectionAnalysis
+              title="Impact Areas"
+              data={analysis.problemDefinition.impactAreas}
+              type="themes"
+            />
+            <SectionAnalysis
+              title="Problem Complexity"
+              data={analysis.problemDefinition.complexityLevels}
+              type="complexity"
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* MVP Planning Analysis */}
-      <div style={{ marginBottom: '40px' }}>
-        <h3 style={{ marginBottom: '20px' }}>MVP Planning Insights</h3>
-        <div style={{ display: 'grid', gap: '20px' }}>
-          <SectionAnalysis
-            title="Solution Approaches"
-            data={analysis.mvpPlanner?.solutionTypes}
-            type="themes"
-          />
-          <SectionAnalysis
-            title="AI Integration Patterns"
-            data={analysis.mvpPlanner?.aiIntegration}
-            type="themes"
-          />
+      {analysis.mvpPlanner && (
+        <div style={{ marginBottom: '40px' }}>
+          <h3 style={{ marginBottom: '20px' }}>MVP Planning Insights</h3>
+          <div style={{ display: 'grid', gap: '20px' }}>
+            <SectionAnalysis
+              title="Solution Approaches"
+              data={analysis.mvpPlanner.solutionTypes}
+              type="themes"
+            />
+            <SectionAnalysis
+              title="User Experience Considerations"
+              data={analysis.mvpPlanner.userExperience}
+              type="themes"
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Build Progress Analysis */}
-      <div style={{ marginBottom: '40px' }}>
-        <h3 style={{ marginBottom: '20px' }}>Build Progress Insights</h3>
-        <div style={{ display: 'grid', gap: '20px' }}>
-          <SectionAnalysis
-            title="Implementation Approaches"
-            data={analysis.build?.implementationApproaches}
-            type="themes"
-          />
-          <SectionAnalysis
-            title="AI Usage Patterns"
-            data={analysis.build?.aiUsage}
-            type="themes"
-          />
+      {analysis.build && (
+        <div style={{ marginBottom: '40px' }}>
+          <h3 style={{ marginBottom: '20px' }}>Build Progress Insights</h3>
+          <div style={{ display: 'grid', gap: '20px' }}>
+            <SectionAnalysis
+              title="Implementation Approaches"
+              data={analysis.build.implementationApproaches}
+              type="themes"
+            />
+            <SectionAnalysis
+              title="AI Usage Patterns"
+              data={analysis.build.aiUsage}
+              type="themes"
+            />
+            <SectionAnalysis
+              title="Future Plans"
+              data={analysis.build.futurePlans}
+              type="themes"
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Recommendations */}
-      <div style={{ marginBottom: '40px' }}>
-        <h3 style={{ marginBottom: '20px' }}>Recommendations</h3>
-        <div style={{
-          backgroundColor: '#1a1a1a',
-          borderRadius: '8px',
-          padding: '20px'
-        }}>
-          {analysis.overview.recommendations.map((rec, index) => (
-            <div key={index} style={{
-              marginBottom: '15px',
-              padding: '10px',
-              backgroundColor: '#222',
-              borderRadius: '4px'
-            }}>
-              <strong style={{ color: '#4CAF50' }}>{rec.section}</strong>
-              <p style={{ margin: '5px 0 0 0' }}>{rec.suggestion}</p>
-            </div>
-          ))}
+      {analysis.overview.recommendations && analysis.overview.recommendations.length > 0 && (
+        <div style={{ marginBottom: '40px' }}>
+          <h3 style={{ marginBottom: '20px' }}>Recommendations</h3>
+          <div style={{
+            backgroundColor: '#1a1a1a',
+            borderRadius: '8px',
+            padding: '20px'
+          }}>
+            {analysis.overview.recommendations.map((rec, index) => (
+              <div key={index} style={{
+                marginBottom: '15px',
+                padding: '10px',
+                backgroundColor: '#222',
+                borderRadius: '4px'
+              }}>
+                <strong style={{ color: '#4CAF50' }}>{rec.section}</strong>
+                <p style={{ margin: '5px 0 0 0' }}>{rec.suggestion}</p>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

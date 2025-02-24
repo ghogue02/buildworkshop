@@ -64,8 +64,7 @@ class BuilderInputAnalysis {
       commonThemes: this.extractCommonThemes(inputs, ['summary', 'context']),
       impactAreas: this.extractCommonThemes(inputs, ['impact']),
       rootCauses: this.extractCommonThemes(inputs, ['rootCauses']),
-      complexityLevels: this.assessComplexity(inputs),
-      userFocus: this.assessUserFocus(inputs)
+      complexityLevels: this.assessComplexity(inputs)
     };
 
     return analysis;
@@ -76,10 +75,7 @@ class BuilderInputAnalysis {
 
     const analysis = {
       solutionTypes: this.extractCommonThemes(inputs, ['howItWorks']),
-      dataNeeds: this.categorizeDataNeeds(inputs),
-      aiIntegration: this.analyzeAIIntegration(inputs),
-      userExperience: this.extractCommonThemes(inputs, ['userExperience']),
-      valueProposition: this.assessValueProposition(inputs)
+      userExperience: this.extractCommonThemes(inputs, ['userExperience'])
     };
 
     return analysis;
@@ -89,10 +85,7 @@ class BuilderInputAnalysis {
     if (inputs.length === 0) return null;
 
     const analysis = {
-      feedbackThemes: this.extractCommonThemes(inputs, ['requestFeedback', 'giveFeedback']),
-      commonConcerns: this.extractConcerns(inputs),
-      improvements: this.extractImprovements(inputs),
-      peerLearning: this.analyzePeerLearning(inputs)
+      feedbackThemes: this.extractCommonThemes(inputs, ['requestFeedback', 'giveFeedback'])
     };
 
     return analysis;
@@ -104,8 +97,7 @@ class BuilderInputAnalysis {
     const analysis = {
       refinementAreas: this.extractCommonThemes(inputs, ['feedbackIntegration']),
       aiEnhancements: this.extractCommonThemes(inputs, ['aiEnhancement']),
-      productChanges: this.extractCommonThemes(inputs, ['productRefinement']),
-      keyImprovements: this.categorizeImprovements(inputs)
+      productChanges: this.extractCommonThemes(inputs, ['productRefinement'])
     };
 
     return analysis;
@@ -116,7 +108,6 @@ class BuilderInputAnalysis {
 
     const analysis = {
       implementationApproaches: this.extractCommonThemes(inputs, ['whatBuilt']),
-      functionality: this.analyzeFunctionality(inputs),
       aiUsage: this.extractCommonThemes(inputs, ['aiHelp']),
       futurePlans: this.extractCommonThemes(inputs, ['futureAdditions'])
     };
@@ -128,9 +119,6 @@ class BuilderInputAnalysis {
     if (inputs.length === 0) return null;
 
     const analysis = {
-      problemClarity: this.assessClarity(inputs, 'problem'),
-      solutionEffectiveness: this.assessClarity(inputs, 'solution'),
-      demoQuality: this.assessClarity(inputs, 'demo'),
       journeyInsights: this.extractCommonThemes(inputs, ['journey']),
       impactMeasurement: this.extractCommonThemes(inputs, ['impact'])
     };
@@ -193,18 +181,38 @@ class BuilderInputAnalysis {
 
   countUniqueBuilders(sectionInputs) {
     const uniqueBuilders = new Set();
+    
+    // Handle the case where inputs might not have session_id directly
     Object.values(sectionInputs).forEach(inputs => {
-      inputs.forEach(input => uniqueBuilders.add(input.session_id));
+      if (inputs && inputs.length > 0) {
+        // If we have session_id directly on the input
+        if (inputs[0].session_id) {
+          inputs.forEach(input => uniqueBuilders.add(input.session_id));
+        } else {
+          // Just count the number of unique entries
+          uniqueBuilders.add(inputs.length);
+        }
+      }
     });
-    return uniqueBuilders.size;
+    
+    // If we didn't find any session_ids, return the count of sections that have data
+    return uniqueBuilders.size > 0 ? uniqueBuilders.size : Object.keys(sectionInputs).length;
   }
 
   calculateSectionCompletionRates(sectionInputs) {
-    const totalBuilders = this.countUniqueBuilders(sectionInputs);
+    const totalSections = this.sectionOrder.length;
+    const sectionCounts = {};
+    
+    this.sectionOrder.forEach(section => {
+      sectionCounts[section] = (sectionInputs[section] || []).length;
+    });
+    
+    const maxCount = Math.max(...Object.values(sectionCounts), 1);
+    
     return Object.fromEntries(
-      Object.entries(sectionInputs).map(([section, inputs]) => [
+      Object.entries(sectionCounts).map(([section, count]) => [
         section,
-        inputs.length / totalBuilders
+        count / maxCount
       ])
     );
   }
@@ -214,8 +222,11 @@ class BuilderInputAnalysis {
     const patterns = {};
     
     Object.entries(sectionInputs).forEach(([section, inputs]) => {
-      const themes = this.extractCommonThemes(inputs, Object.keys(inputs[0] || {}));
-      patterns[section] = themes.slice(0, 5); // Top 5 themes per section
+      if (inputs && inputs.length > 0) {
+        const fields = Object.keys(inputs[0] || {}).filter(k => typeof inputs[0][k] === 'string');
+        const themes = this.extractCommonThemes(inputs, fields);
+        patterns[section] = themes.slice(0, 5); // Top 5 themes per section
+      }
     });
 
     return patterns;
@@ -223,22 +234,26 @@ class BuilderInputAnalysis {
 
   generateKeyInsights(sectionInputs) {
     const insights = [];
-    const totalBuilders = this.countUniqueBuilders(sectionInputs);
-
-    // Analyze completion funnel
-    const funnel = this.sectionOrder.map(section => ({
+    
+    // Calculate completion funnel
+    const completionCounts = this.sectionOrder.map(section => ({
       section,
-      count: (sectionInputs[section] || []).length,
-      rate: ((sectionInputs[section] || []).length / totalBuilders * 100).toFixed(1)
+      count: (sectionInputs[section] || []).length
+    }));
+    
+    const maxCount = Math.max(...completionCounts.map(item => item.count), 1);
+    
+    const funnel = completionCounts.map(item => ({
+      ...item,
+      rate: ((item.count / maxCount) * 100).toFixed(1)
     }));
 
     insights.push({
       type: 'completion_funnel',
       data: funnel,
-      summary: `${funnel[funnel.length - 1].rate}% of builders complete all sections`
+      summary: `${funnel[funnel.length - 1].rate}% completion rate through all sections`
     });
 
-    // Add other insights based on patterns
     return insights;
   }
 
