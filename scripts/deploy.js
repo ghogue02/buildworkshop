@@ -2,17 +2,23 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-// Read environment variables
-const envVars = {
-  REACT_APP_SUPABASE_URL: process.env.REACT_APP_SUPABASE_URL,
-  REACT_APP_SUPABASE_ANON_KEY: process.env.REACT_APP_SUPABASE_ANON_KEY,
-  REACT_APP_OPENAI_API_KEY: process.env.REACT_APP_OPENAI_API_KEY
-};
+// Load environment variables from .env.production
+const envPath = path.join(__dirname, '../.env.production');
+const envContent = fs.readFileSync(envPath, 'utf8');
+const envVars = {};
+
+envContent.split('\n').forEach(line => {
+  const [key, value] = line.split('=');
+  if (key && value) {
+    envVars[key.trim()] = value.trim();
+    process.env[key.trim()] = value.trim();
+  }
+});
 
 // Validate environment variables
-Object.entries(envVars).forEach(([key, value]) => {
-  if (!value) {
-    console.error(`Error: ${key} is not set`);
+['REACT_APP_SUPABASE_URL', 'REACT_APP_SUPABASE_ANON_KEY', 'REACT_APP_OPENAI_API_KEY'].forEach(key => {
+  if (!process.env[key]) {
+    console.error(`Error: ${key} is not set in .env.production`);
     process.exit(1);
   }
 });
@@ -20,7 +26,10 @@ Object.entries(envVars).forEach(([key, value]) => {
 try {
   // Build the project
   console.log('Building project...');
-  execSync('npm run build', { stdio: 'inherit' });
+  execSync('npm run build', { 
+    stdio: 'inherit',
+    env: { ...process.env, ...envVars }
+  });
 
   // Generate env-config.js
   console.log('Generating environment config...');
