@@ -1,85 +1,116 @@
 import React, { useState, useEffect } from 'react';
-import { builderInputAnalysis } from '../../services/builderInputAnalysis';
+import { supabase } from '../../supabaseClient';
 
 function BuilderInputReport() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [analysis, setAnalysis] = useState(null);
+  const [builderData, setBuilderData] = useState(null);
+  const [sectionCounts, setSectionCounts] = useState({});
 
   useEffect(() => {
-    loadAnalysis();
+    loadBuilderData();
   }, []);
 
-  const loadAnalysis = async () => {
+  const loadBuilderData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const result = await builderInputAnalysis.analyzeSectionInputs();
-      setAnalysis(result);
+      
+      // Fetch all user inputs
+      const { data: inputs, error } = await supabase
+        .from('user_inputs')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Group by section
+      const sectionData = {};
+      const counts = {};
+      
+      inputs.forEach(input => {
+        if (!sectionData[input.section_name]) {
+          sectionData[input.section_name] = [];
+          counts[input.section_name] = 0;
+        }
+        sectionData[input.section_name].push(input);
+        counts[input.section_name]++;
+      });
+      
+      setBuilderData(sectionData);
+      setSectionCounts(counts);
     } catch (error) {
-      console.error('Error loading analysis:', error);
-      setError('Failed to load builder input analysis');
+      console.error('Error loading builder data:', error);
+      setError('Failed to load builder data');
     } finally {
       setLoading(false);
     }
   };
 
-  const SectionAnalysis = ({ title, data, type = 'default' }) => {
-    if (!data) return null;
-
-    return (
+  const SectionCard = ({ title, count, data }) => (
+    <div style={{
+      backgroundColor: '#1a1a1a',
+      borderRadius: '8px',
+      padding: '20px',
+      marginBottom: '20px'
+    }}>
       <div style={{
-        backgroundColor: '#1a1a1a',
-        borderRadius: '8px',
-        padding: '20px',
-        marginBottom: '20px'
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '15px'
       }}>
-        <h3 style={{ margin: '0 0 20px 0', color: '#4CAF50' }}>{title}</h3>
-        {type === 'themes' && data.map((item, index) => (
-          <div key={index} style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            marginBottom: '10px',
-            padding: '8px',
-            backgroundColor: index % 2 === 0 ? '#222' : 'transparent',
-            borderRadius: '4px'
-          }}>
-            <span>{item.theme}</span>
-            <span style={{ color: '#4CAF50' }}>{item.count}</span>
-          </div>
-        ))}
-        {type === 'complexity' && (
-          <div style={{ display: 'grid', gap: '15px' }}>
-            {Object.entries(
-              data.reduce((acc, item) => {
-                acc[item.level] = (acc[item.level] || 0) + 1;
-                return acc;
-              }, {})
-            ).map(([level, count]) => (
-              <div key={level} style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                padding: '8px',
-                backgroundColor: '#222',
-                borderRadius: '4px'
-              }}>
-                <span>{level} Complexity</span>
-                <span style={{ color: '#4CAF50' }}>{count}</span>
-              </div>
-            ))}
-          </div>
-        )}
-        {type === 'default' && (
-          <pre style={{
-            margin: 0,
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word'
-          }}>
-            {JSON.stringify(data, null, 2)}
-          </pre>
-        )}
+        <h3 style={{ margin: 0, color: '#4CAF50' }}>{title}</h3>
+        <div style={{
+          backgroundColor: '#333',
+          padding: '5px 10px',
+          borderRadius: '20px',
+          fontSize: '14px'
+        }}>
+          {count} entries
+        </div>
       </div>
-    );
+      
+      <div>
+        <h4>Common Words:</h4>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+          {extractCommonWords(data).map((word, index) => (
+            <div key={index} style={{
+              backgroundColor: '#333',
+              padding: '5px 10px',
+              borderRadius: '20px',
+              fontSize: '14px'
+            }}>
+              {word}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  // Simple function to extract common words from section data
+  const extractCommonWords = (sectionData) => {
+    if (!sectionData || sectionData.length === 0) return [];
+    
+    const words = {};
+    const stopWords = new Set(['and', 'the', 'to', 'of', 'a', 'in', 'for', 'is', 'on', 'that', 'by', 'this', 'with', 'i', 'you', 'it', 'not', 'or', 'be', 'are', 'from', 'at', 'as', 'your', 'have', 'more', 'an', 'was', 'we', 'will', 'can', 'all', 'they', 'their']);
+    
+    sectionData.forEach(input => {
+      const text = JSON.stringify(input.input_data).toLowerCase();
+      const matches = text.match(/\b[a-z]{4,}\b/g) || [];
+      
+      matches.forEach(word => {
+        if (!stopWords.has(word)) {
+          words[word] = (words[word] || 0) + 1;
+        }
+      });
+    });
+    
+    return Object.entries(words)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 15)
+      .map(([word]) => word);
   };
 
   if (error) {
@@ -90,155 +121,90 @@ function BuilderInputReport() {
     );
   }
 
-  if (loading || !analysis) {
+  if (loading || !builderData) {
     return (
       <div style={{ padding: '20px', textAlign: 'center', color: 'white' }}>
-        Loading analysis...
+        Loading builder data...
       </div>
     );
   }
+
+  // Calculate completion funnel
+  const sectionOrder = [
+    'User Info',
+    'Problem Definition',
+    'MVP Planner',
+    'Give & Get Feedback',
+    'Refine Your MVP',
+    'Start Build',
+    'Presentations & Retro'
+  ];
+  
+  const maxCount = Math.max(...Object.values(sectionCounts), 1);
 
   return (
     <div style={{ color: 'white' }}>
       <h2 style={{ marginBottom: '30px' }}>Builder Input Analysis</h2>
 
-      {/* Overview Section */}
+      {/* Completion Funnel */}
       <div style={{
         backgroundColor: '#1a1a1a',
         borderRadius: '8px',
         padding: '20px',
         marginBottom: '30px'
       }}>
-        <h3 style={{ margin: '0 0 20px 0', color: '#4CAF50' }}>Overview</h3>
-        <div style={{ display: 'grid', gap: '20px' }}>
-          <div>
-            <strong>Total Builders:</strong> {analysis.overview.totalBuilders}
-          </div>
-          <div>
-            <strong>Completion Rates:</strong>
-            <div style={{ marginTop: '10px' }}>
-              {Object.entries(analysis.overview.completionRates || {}).map(([section, rate]) => (
-                <div key={section} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  marginBottom: '8px'
+        <h3 style={{ margin: '0 0 20px 0', color: '#4CAF50' }}>Completion Funnel</h3>
+        <div>
+          {sectionOrder.map(section => {
+            const count = sectionCounts[section] || 0;
+            const percentage = ((count / maxCount) * 100).toFixed(1);
+            
+            return (
+              <div key={section} style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                marginBottom: '15px'
+              }}>
+                <div style={{ minWidth: '200px' }}>{section}</div>
+                <div style={{
+                  flex: 1,
+                  height: '20px',
+                  backgroundColor: '#333',
+                  borderRadius: '10px',
+                  overflow: 'hidden'
                 }}>
-                  <div style={{ minWidth: '200px' }}>{section}</div>
                   <div style={{
-                    flex: 1,
-                    height: '20px',
-                    backgroundColor: '#333',
-                    borderRadius: '10px',
-                    overflow: 'hidden'
-                  }}>
-                    <div style={{
-                      width: `${rate * 100}%`,
-                      height: '100%',
-                      backgroundColor: '#4CAF50',
-                      transition: 'width 0.3s ease'
-                    }} />
-                  </div>
-                  <div style={{ minWidth: '60px' }}>
-                    {(rate * 100).toFixed(1)}%
-                  </div>
+                    width: `${percentage}%`,
+                    height: '100%',
+                    backgroundColor: '#4CAF50',
+                    transition: 'width 0.3s ease'
+                  }} />
                 </div>
-              ))}
-            </div>
-          </div>
+                <div style={{ minWidth: '100px' }}>
+                  {count} ({percentage}%)
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Problem Definition Analysis */}
-      {analysis.problemDefinition && (
-        <div style={{ marginBottom: '40px' }}>
-          <h3 style={{ marginBottom: '20px' }}>Problem Definition Insights</h3>
-          <div style={{ display: 'grid', gap: '20px' }}>
-            <SectionAnalysis
-              title="Common Themes"
-              data={analysis.problemDefinition.commonThemes}
-              type="themes"
+      {/* Section Analysis */}
+      <div>
+        <h3 style={{ marginBottom: '20px' }}>Section Insights</h3>
+        
+        {sectionOrder.map(section => (
+          builderData[section] && (
+            <SectionCard
+              key={section}
+              title={section}
+              count={sectionCounts[section] || 0}
+              data={builderData[section]}
             />
-            <SectionAnalysis
-              title="Impact Areas"
-              data={analysis.problemDefinition.impactAreas}
-              type="themes"
-            />
-            <SectionAnalysis
-              title="Problem Complexity"
-              data={analysis.problemDefinition.complexityLevels}
-              type="complexity"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* MVP Planning Analysis */}
-      {analysis.mvpPlanner && (
-        <div style={{ marginBottom: '40px' }}>
-          <h3 style={{ marginBottom: '20px' }}>MVP Planning Insights</h3>
-          <div style={{ display: 'grid', gap: '20px' }}>
-            <SectionAnalysis
-              title="Solution Approaches"
-              data={analysis.mvpPlanner.solutionTypes}
-              type="themes"
-            />
-            <SectionAnalysis
-              title="User Experience Considerations"
-              data={analysis.mvpPlanner.userExperience}
-              type="themes"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Build Progress Analysis */}
-      {analysis.build && (
-        <div style={{ marginBottom: '40px' }}>
-          <h3 style={{ marginBottom: '20px' }}>Build Progress Insights</h3>
-          <div style={{ display: 'grid', gap: '20px' }}>
-            <SectionAnalysis
-              title="Implementation Approaches"
-              data={analysis.build.implementationApproaches}
-              type="themes"
-            />
-            <SectionAnalysis
-              title="AI Usage Patterns"
-              data={analysis.build.aiUsage}
-              type="themes"
-            />
-            <SectionAnalysis
-              title="Future Plans"
-              data={analysis.build.futurePlans}
-              type="themes"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Recommendations */}
-      {analysis.overview.recommendations && analysis.overview.recommendations.length > 0 && (
-        <div style={{ marginBottom: '40px' }}>
-          <h3 style={{ marginBottom: '20px' }}>Recommendations</h3>
-          <div style={{
-            backgroundColor: '#1a1a1a',
-            borderRadius: '8px',
-            padding: '20px'
-          }}>
-            {analysis.overview.recommendations.map((rec, index) => (
-              <div key={index} style={{
-                marginBottom: '15px',
-                padding: '10px',
-                backgroundColor: '#222',
-                borderRadius: '4px'
-              }}>
-                <strong style={{ color: '#4CAF50' }}>{rec.section}</strong>
-                <p style={{ margin: '5px 0 0 0' }}>{rec.suggestion}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+          )
+        ))}
+      </div>
     </div>
   );
 }
