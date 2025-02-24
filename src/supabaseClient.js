@@ -1,23 +1,21 @@
 import { createClient } from '@supabase/supabase-js';
+import { config } from './config';
 
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+const supabaseUrl = config.supabase.url;
+const supabaseAnonKey = config.supabase.anonKey;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
+  throw new Error('Missing Supabase configuration. Check environment variables.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// Test the connection
-supabase
-  .from('user_inputs')
-  .select('*')
-  .limit(1)
-  .then(({ data, error }) => {
-    if (error) {
-      console.error('Supabase connection error:', error);
-    } else {
-      console.log('Supabase connected successfully:', data);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false
+  },
+  global: {
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
     }
-  });
+  }
+});
