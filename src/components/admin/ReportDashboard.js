@@ -3,55 +3,39 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line
 } from 'recharts';
-import { dataAggregationService } from '../../services/dataAggregationService';
-import { setOpenAIKey } from '../../config';
+import { analyticsService } from '../../services/analyticsService';
 
 function ReportDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [report, setReport] = useState(null);
-  const [apiKey, setApiKey] = useState('');
-  const [showKeyForm, setShowKeyForm] = useState(false);
+  const [data, setData] = useState(null);
   const [filters, setFilters] = useState({
     startDate: null,
     endDate: null,
-    filterCompleted: false,
-    problemCategories: []
+    filterCompleted: false
   });
 
   useEffect(() => {
-    loadReport();
+    loadData();
   }, []);
 
-  const loadReport = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const newReport = await dataAggregationService.generateReport(filters);
-      setReport(newReport);
+      const result = await analyticsService.getBuilderData(filters);
+      setData(result);
     } catch (error) {
-      console.error('Error loading report:', error);
-      if (error.message.includes('OpenAI API key not found')) {
-        setShowKeyForm(true);
-        setError('Please enter your OpenAI API key to generate reports');
-      } else {
-        setError('Failed to load report data');
-      }
+      console.error('Error loading data:', error);
+      setError('Failed to load analytics data');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleApiKeySubmit = async (e) => {
-    e.preventDefault();
-    setOpenAIKey(apiKey);
-    setShowKeyForm(false);
-    await loadReport();
-  };
-
   const handleFilterChange = (newFilters) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
-    loadReport();
+    loadData();
   };
 
   const MetricCard = ({ title, value, description }) => (
@@ -69,81 +53,7 @@ function ReportDashboard() {
     </div>
   );
 
-  const InsightSection = ({ title, insights, type }) => (
-    <div style={{
-      backgroundColor: '#1a1a1a',
-      borderRadius: '8px',
-      padding: '20px',
-      marginBottom: '20px'
-    }}>
-      <h3 style={{ margin: '0 0 20px 0', color: '#4CAF50' }}>{title}</h3>
-      {type === 'list' ? (
-        <ul style={{ margin: 0, paddingLeft: '20px' }}>
-          {insights.map((insight, index) => (
-            <li key={index} style={{ marginBottom: '10px' }}>{insight}</li>
-          ))}
-        </ul>
-      ) : (
-        <div style={{ display: 'grid', gap: '15px' }}>
-          {Object.entries(insights).map(([key, value]) => (
-            <div key={key}>
-              <strong>{key}:</strong> {value}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-
-  if (showKeyForm) {
-    return (
-      <div style={{
-        padding: '40px',
-        maxWidth: '600px',
-        margin: '0 auto',
-        color: 'white'
-      }}>
-        <h2 style={{ marginBottom: '20px' }}>OpenAI API Key Required</h2>
-        <p style={{ marginBottom: '20px', color: '#888' }}>
-          To generate AI-powered reports and insights, please enter your OpenAI API key.
-          This key will only be stored in your browser's memory and will not be saved
-          or transmitted anywhere else.
-        </p>
-        <form onSubmit={handleApiKeySubmit}>
-          <input
-            type="password"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder="Enter your OpenAI API key"
-            style={{
-              width: '100%',
-              padding: '12px',
-              marginBottom: '20px',
-              backgroundColor: '#1a1a1a',
-              border: '1px solid #333',
-              borderRadius: '4px',
-              color: 'white'
-            }}
-          />
-          <button
-            type="submit"
-            style={{
-              padding: '12px 24px',
-              backgroundColor: '#4CAF50',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            Save Key & Generate Report
-          </button>
-        </form>
-      </div>
-    );
-  }
-
-  if (error && !showKeyForm) {
+  if (error) {
     return (
       <div style={{ padding: '20px', color: 'red', textAlign: 'center' }}>
         {error}
@@ -151,25 +61,31 @@ function ReportDashboard() {
     );
   }
 
-  if (loading || !report) {
+  if (loading || !data) {
     return (
       <div style={{ padding: '20px', textAlign: 'center', color: 'white' }}>
-        Loading report data...
+        Loading analytics data...
       </div>
     );
   }
 
   // Prepare chart data
-  const sectionCompletionData = Object.entries(report.metrics.sectionCompletionRates)
+  const sectionCompletionData = Object.entries(data.metrics.sectionCompletionRates)
     .map(([name, rate]) => ({
       name,
       rate: (rate * 100).toFixed(1)
     }));
 
-  const timeDistributionData = Object.entries(report.metrics.averageTimePerSection)
+  const timeDistributionData = Object.entries(data.metrics.averageTimePerSection)
     .map(([name, time]) => ({
       name,
       minutes: (time / 60000).toFixed(1)
+    }));
+
+  const dropoffData = Object.entries(data.metrics.dropoffPoints)
+    .map(([name, rate]) => ({
+      name,
+      rate: (rate * 100).toFixed(1)
     }));
 
   return (
@@ -181,7 +97,7 @@ function ReportDashboard() {
         alignItems: 'center',
         marginBottom: '30px'
       }}>
-        <h2 style={{ margin: 0 }}>AI Builder Analysis</h2>
+        <h2 style={{ margin: 0 }}>Builder Analytics</h2>
         <div style={{ display: 'flex', gap: '10px' }}>
           <input
             type="date"
@@ -235,20 +151,18 @@ function ReportDashboard() {
       }}>
         <MetricCard
           title="Total Builders"
-          value={report.metrics.totalBuilders}
+          value={data.metrics.totalBuilders}
           description="Number of builders in selected period"
         />
         <MetricCard
           title="Completion Rate"
-          value={`${(report.metrics.completionRate * 100).toFixed(1)}%`}
+          value={`${(data.metrics.completionRate * 100).toFixed(1)}%`}
           description="Percentage of builders completing all sections"
         />
         <MetricCard
-          title="Average Time per Section"
-          value={`${(Object.values(report.metrics.averageTimePerSection)
-            .reduce((a, b) => a + b, 0) / (Object.keys(report.metrics.averageTimePerSection).length || 1) / 60000
-            ).toFixed(1)} minutes`}
-          description="Average time spent in each section"
+          title="Average Session Duration"
+          value={`${(data.metrics.averageSessionDuration / 60000).toFixed(1)} minutes`}
+          description="Average time spent per builder"
         />
       </div>
 
@@ -333,33 +247,42 @@ function ReportDashboard() {
         </div>
       </div>
 
-      {/* Analysis Sections */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
-        gap: '20px'
-      }}>
-        <InsightSection
-          title="Key Findings"
-          insights={report.summary.key_findings}
-          type="list"
-        />
-        <InsightSection
-          title="Common Challenges"
-          insights={report.analysis.patterns.challenges}
-          type="list"
-        />
-        <InsightSection
-          title="Success Patterns"
-          insights={report.analysis.success_indicators}
-          type="list"
-        />
-        <InsightSection
-          title="Recommendations"
-          insights={report.improvements}
-          type="object"
-        />
-      </div>
+      {/* Dropoff Analysis */}
+      {dropoffData.length > 0 && (
+        <div style={{
+          backgroundColor: '#1a1a1a',
+          borderRadius: '8px',
+          padding: '20px',
+          marginBottom: '30px'
+        }}>
+          <h3 style={{ margin: '0 0 20px 0', color: '#4CAF50' }}>
+            Section Dropoff Rates
+          </h3>
+          <div style={{ height: '300px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={dropoffData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                <XAxis
+                  dataKey="name"
+                  angle={-45}
+                  textAnchor="end"
+                  height={100}
+                  stroke="white"
+                />
+                <YAxis stroke="white" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1a1a1a',
+                    border: '1px solid #333',
+                    color: 'white'
+                  }}
+                />
+                <Bar dataKey="rate" fill="#E91E63" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
