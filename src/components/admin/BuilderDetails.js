@@ -18,7 +18,7 @@ function BuilderDetails({ builder }) {
       const { data, error } = await supabase
         .from('admin_notes')
         .select('notes, updated_at')
-        .eq('session_id', builder.sessionId)
+        .eq('session_id', builder.sessionId.toString())
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -48,7 +48,7 @@ function BuilderDetails({ builder }) {
       const { data: existingData, error: fetchError } = await supabase
         .from('admin_notes')
         .select('id')
-        .eq('session_id', builder.sessionId)
+        .eq('session_id', builder.sessionId.toString())
         .single();
 
       if (fetchError && fetchError.code !== 'PGRST116') {
@@ -64,14 +64,14 @@ function BuilderDetails({ builder }) {
             notes: adminNotes,
             updated_at: new Date().toISOString()
           })
-          .eq('session_id', builder.sessionId);
+          .eq('session_id', builder.sessionId.toString());
         error = updateError;
       } else {
         // Insert new record
         const { error: insertError } = await supabase
           .from('admin_notes')
           .insert({
-            session_id: builder.sessionId,
+            session_id: builder.sessionId.toString(),
             notes: adminNotes
           });
         error = insertError;
