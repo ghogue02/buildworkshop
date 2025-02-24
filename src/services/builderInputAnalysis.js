@@ -1,0 +1,264 @@
+import { supabase } from '../supabaseClient';
+
+class BuilderInputAnalysis {
+  constructor() {
+    this.sectionOrder = [
+      'User Info',
+      'Problem Definition',
+      'MVP Planner',
+      'Give & Get Feedback',
+      'Refine Your MVP',
+      'Start Build',
+      'Presentations & Retro'
+    ];
+  }
+
+  async analyzeSectionInputs() {
+    try {
+      // Fetch all user inputs
+      const { data: inputs, error } = await supabase
+        .from('user_inputs')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      // Group inputs by section
+      const sectionInputs = this.groupBySection(inputs);
+
+      // Analyze each section
+      const analysis = {
+        problemDefinition: this.analyzeProblemDefinition(sectionInputs['Problem Definition'] || []),
+        mvpPlanner: this.analyzeMVPPlanner(sectionInputs['MVP Planner'] || []),
+        feedback: this.analyzeFeedback(sectionInputs['Give & Get Feedback'] || []),
+        refinements: this.analyzeRefinements(sectionInputs['Refine Your MVP'] || []),
+        build: this.analyzeBuild(sectionInputs['Start Build'] || []),
+        presentations: this.analyzePresentations(sectionInputs['Presentations & Retro'] || []),
+        overview: this.generateOverview(sectionInputs)
+      };
+
+      return analysis;
+    } catch (error) {
+      console.error('Error analyzing builder inputs:', error);
+      throw new Error('Failed to analyze builder inputs');
+    }
+  }
+
+  groupBySection(inputs) {
+    const sections = {};
+    
+    inputs.forEach(input => {
+      if (!sections[input.section_name]) {
+        sections[input.section_name] = [];
+      }
+      sections[input.section_name].push(input.input_data);
+    });
+
+    return sections;
+  }
+
+  analyzeProblemDefinition(inputs) {
+    if (inputs.length === 0) return null;
+
+    const analysis = {
+      commonThemes: this.extractCommonThemes(inputs, ['summary', 'context']),
+      impactAreas: this.extractCommonThemes(inputs, ['impact']),
+      rootCauses: this.extractCommonThemes(inputs, ['rootCauses']),
+      complexityLevels: this.assessComplexity(inputs),
+      userFocus: this.assessUserFocus(inputs)
+    };
+
+    return analysis;
+  }
+
+  analyzeMVPPlanner(inputs) {
+    if (inputs.length === 0) return null;
+
+    const analysis = {
+      solutionTypes: this.extractCommonThemes(inputs, ['howItWorks']),
+      dataNeeds: this.categorizeDataNeeds(inputs),
+      aiIntegration: this.analyzeAIIntegration(inputs),
+      userExperience: this.extractCommonThemes(inputs, ['userExperience']),
+      valueProposition: this.assessValueProposition(inputs)
+    };
+
+    return analysis;
+  }
+
+  analyzeFeedback(inputs) {
+    if (inputs.length === 0) return null;
+
+    const analysis = {
+      feedbackThemes: this.extractCommonThemes(inputs, ['requestFeedback', 'giveFeedback']),
+      commonConcerns: this.extractConcerns(inputs),
+      improvements: this.extractImprovements(inputs),
+      peerLearning: this.analyzePeerLearning(inputs)
+    };
+
+    return analysis;
+  }
+
+  analyzeRefinements(inputs) {
+    if (inputs.length === 0) return null;
+
+    const analysis = {
+      refinementAreas: this.extractCommonThemes(inputs, ['feedbackIntegration']),
+      aiEnhancements: this.extractCommonThemes(inputs, ['aiEnhancement']),
+      productChanges: this.extractCommonThemes(inputs, ['productRefinement']),
+      keyImprovements: this.categorizeImprovements(inputs)
+    };
+
+    return analysis;
+  }
+
+  analyzeBuild(inputs) {
+    if (inputs.length === 0) return null;
+
+    const analysis = {
+      implementationApproaches: this.extractCommonThemes(inputs, ['whatBuilt']),
+      functionality: this.analyzeFunctionality(inputs),
+      aiUsage: this.extractCommonThemes(inputs, ['aiHelp']),
+      futurePlans: this.extractCommonThemes(inputs, ['futureAdditions'])
+    };
+
+    return analysis;
+  }
+
+  analyzePresentations(inputs) {
+    if (inputs.length === 0) return null;
+
+    const analysis = {
+      problemClarity: this.assessClarity(inputs, 'problem'),
+      solutionEffectiveness: this.assessClarity(inputs, 'solution'),
+      demoQuality: this.assessClarity(inputs, 'demo'),
+      journeyInsights: this.extractCommonThemes(inputs, ['journey']),
+      impactMeasurement: this.extractCommonThemes(inputs, ['impact'])
+    };
+
+    return analysis;
+  }
+
+  generateOverview(sectionInputs) {
+    return {
+      totalBuilders: this.countUniqueBuilders(sectionInputs),
+      completionRates: this.calculateSectionCompletionRates(sectionInputs),
+      commonPatterns: this.identifyCommonPatterns(sectionInputs),
+      keyInsights: this.generateKeyInsights(sectionInputs),
+      recommendations: this.generateRecommendations(sectionInputs)
+    };
+  }
+
+  // Helper methods for pattern extraction and analysis
+  extractCommonThemes(inputs, fields) {
+    const themes = {};
+    
+    inputs.forEach(input => {
+      fields.forEach(field => {
+        const text = input[field]?.toLowerCase() || '';
+        const words = text.split(/\W+/).filter(w => w.length > 3);
+        
+        words.forEach(word => {
+          themes[word] = (themes[word] || 0) + 1;
+        });
+      });
+    });
+
+    return Object.entries(themes)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 10)
+      .map(([theme, count]) => ({ theme, count }));
+  }
+
+  assessComplexity(inputs) {
+    return inputs.map(input => {
+      const textLength = JSON.stringify(input).length;
+      const hasMultipleComponents = input.rootCauses?.includes(',') || false;
+      const hasDetailedContext = (input.context?.length || 0) > 200;
+      
+      return {
+        level: this.calculateComplexityLevel(textLength, hasMultipleComponents, hasDetailedContext),
+        factors: { textLength, hasMultipleComponents, hasDetailedContext }
+      };
+    });
+  }
+
+  calculateComplexityLevel(textLength, hasMultipleComponents, hasDetailedContext) {
+    let score = 0;
+    if (textLength > 500) score += 2;
+    else if (textLength > 200) score += 1;
+    if (hasMultipleComponents) score += 1;
+    if (hasDetailedContext) score += 1;
+    return ['Low', 'Medium', 'High', 'Very High'][Math.min(score, 3)];
+  }
+
+  countUniqueBuilders(sectionInputs) {
+    const uniqueBuilders = new Set();
+    Object.values(sectionInputs).forEach(inputs => {
+      inputs.forEach(input => uniqueBuilders.add(input.session_id));
+    });
+    return uniqueBuilders.size;
+  }
+
+  calculateSectionCompletionRates(sectionInputs) {
+    const totalBuilders = this.countUniqueBuilders(sectionInputs);
+    return Object.fromEntries(
+      Object.entries(sectionInputs).map(([section, inputs]) => [
+        section,
+        inputs.length / totalBuilders
+      ])
+    );
+  }
+
+  identifyCommonPatterns(sectionInputs) {
+    // Analyze patterns across sections
+    const patterns = {};
+    
+    Object.entries(sectionInputs).forEach(([section, inputs]) => {
+      const themes = this.extractCommonThemes(inputs, Object.keys(inputs[0] || {}));
+      patterns[section] = themes.slice(0, 5); // Top 5 themes per section
+    });
+
+    return patterns;
+  }
+
+  generateKeyInsights(sectionInputs) {
+    const insights = [];
+    const totalBuilders = this.countUniqueBuilders(sectionInputs);
+
+    // Analyze completion funnel
+    const funnel = this.sectionOrder.map(section => ({
+      section,
+      count: (sectionInputs[section] || []).length,
+      rate: ((sectionInputs[section] || []).length / totalBuilders * 100).toFixed(1)
+    }));
+
+    insights.push({
+      type: 'completion_funnel',
+      data: funnel,
+      summary: `${funnel[funnel.length - 1].rate}% of builders complete all sections`
+    });
+
+    // Add other insights based on patterns
+    return insights;
+  }
+
+  generateRecommendations(sectionInputs) {
+    const recommendations = [];
+    const completionRates = this.calculateSectionCompletionRates(sectionInputs);
+
+    // Find sections with low completion rates
+    Object.entries(completionRates)
+      .filter(([, rate]) => rate < 0.5)
+      .forEach(([section]) => {
+        recommendations.push({
+          section,
+          type: 'completion',
+          suggestion: `Consider reviewing ${section} content and support materials`
+        });
+      });
+
+    return recommendations;
+  }
+}
+
+export const builderInputAnalysis = new BuilderInputAnalysis();

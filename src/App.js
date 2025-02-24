@@ -1,22 +1,40 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import AdminDashboard from './components/admin/AdminDashboard';
 import ReportDashboard from './components/admin/ReportDashboard';
+import BuilderInputReport from './components/admin/BuilderInputReport';
 import BuilderView from './components/BuilderView';
 
 function App() {
-  const { isAdmin, view } = useMemo(() => {
+  const isAdmin = useMemo(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    return {
-      isAdmin: urlParams.get('mode') === 'admin',
-      view: urlParams.get('view')
-    };
+    return urlParams.get('mode') === 'admin';
   }, []);
+
+  const [activeView, setActiveView] = useState('builders');
 
   if (!isAdmin) {
     return <BuilderView />;
   }
 
-  // Render admin views based on the view parameter
+  const NavLink = ({ view, children }) => (
+    <button
+      onClick={() => setActiveView(view)}
+      style={{
+        padding: '10px 20px',
+        textDecoration: 'none',
+        color: activeView === view ? '#4CAF50' : 'white',
+        backgroundColor: activeView === view ? '#1a1a1a' : 'transparent',
+        borderRadius: '4px',
+        transition: 'all 0.3s ease',
+        border: 'none',
+        cursor: 'pointer',
+        fontSize: '16px'
+      }}
+    >
+      {children}
+    </button>
+  );
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -36,32 +54,9 @@ function App() {
           gap: '20px',
           alignItems: 'center'
         }}>
-          <a
-            href="?mode=admin"
-            style={{
-              padding: '10px 20px',
-              textDecoration: 'none',
-              color: !view ? '#4CAF50' : 'white',
-              backgroundColor: !view ? '#1a1a1a' : 'transparent',
-              borderRadius: '4px',
-              transition: 'all 0.3s ease'
-            }}
-          >
-            Builders
-          </a>
-          <a
-            href="?mode=admin&view=reports"
-            style={{
-              padding: '10px 20px',
-              textDecoration: 'none',
-              color: view === 'reports' ? '#4CAF50' : 'white',
-              backgroundColor: view === 'reports' ? '#1a1a1a' : 'transparent',
-              borderRadius: '4px',
-              transition: 'all 0.3s ease'
-            }}
-          >
-            AI Reports
-          </a>
+          <NavLink view="builders">Builders</NavLink>
+          <NavLink view="analytics">Analytics</NavLink>
+          <NavLink view="insights">Builder Insights</NavLink>
         </div>
       </nav>
 
@@ -71,7 +66,9 @@ function App() {
         margin: '0 auto',
         padding: '20px'
       }}>
-        {view === 'reports' ? <ReportDashboard /> : <AdminDashboard />}
+        {activeView === 'builders' && <AdminDashboard />}
+        {activeView === 'analytics' && <ReportDashboard />}
+        {activeView === 'insights' && <BuilderInputReport />}
       </main>
     </div>
   );
