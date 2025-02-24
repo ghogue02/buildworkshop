@@ -15,8 +15,11 @@ function App() {
     return <BuilderView />;
   }
 
+  // Get the base URL from the homepage in package.json
+  const basename = process.env.PUBLIC_URL || '';
+
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
       <Routes>
         <Route path="/" element={<Navigate to="/admin" replace />} />
         <Route path="/admin" element={<AdminLayout />}>

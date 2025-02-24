@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 
 function AdminLayout() {
   const location = useLocation();
+  const basename = process.env.PUBLIC_URL || '';
 
   const NavLink = ({ to, children }) => {
     const isActive = location.pathname === to;
@@ -43,8 +44,8 @@ function AdminLayout() {
           gap: '20px',
           alignItems: 'center'
         }}>
-          <NavLink to="/admin">Builders</NavLink>
-          <NavLink to="/admin/reports">AI Reports</NavLink>
+          <NavLink to={`${basename}/admin`}>Builders</NavLink>
+          <NavLink to={`${basename}/admin/reports`}>AI Reports</NavLink>
         </div>
       </nav>
 
