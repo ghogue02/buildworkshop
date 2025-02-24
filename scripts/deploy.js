@@ -15,8 +15,8 @@ envContent.split('\n').forEach(line => {
   }
 });
 
-// Validate environment variables
-['REACT_APP_SUPABASE_URL', 'REACT_APP_SUPABASE_ANON_KEY', 'REACT_APP_OPENAI_API_KEY'].forEach(key => {
+// Validate Supabase environment variables
+['REACT_APP_SUPABASE_URL', 'REACT_APP_SUPABASE_ANON_KEY'].forEach(key => {
   if (!process.env[key]) {
     console.error(`Error: ${key} is not set in .env.production`);
     process.exit(1);
