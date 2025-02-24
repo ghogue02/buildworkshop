@@ -4,7 +4,7 @@ import {
   LineChart, Line
 } from 'recharts';
 import { dataAggregationService } from '../../services/dataAggregationService';
-import { config, setOpenAIKey } from '../../config';
+import { setOpenAIKey } from '../../config';
 
 function ReportDashboard() {
   const [loading, setLoading] = useState(true);
