@@ -51,13 +51,13 @@ try {
     envConfigContent
   );
 
-  // Deploy to GitHub Pages
-  console.log('Deploying to GitHub Pages...');
-  execSync('gh-pages -d build', { stdio: 'inherit' });
-
   // Update env-config.js to use Web Speech API
   console.log('Updating env-config.js to use Web Speech API...');
   execSync('node scripts/web-speech-api-update.js build/env-config.js', { stdio: 'inherit' });
+
+  // Deploy to GitHub Pages
+  console.log('Deploying to GitHub Pages...');
+  execSync('gh-pages -d build', { stdio: 'inherit' });
   
   console.log('Deployment completed successfully!');
   
