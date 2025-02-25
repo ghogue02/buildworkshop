@@ -56,6 +56,12 @@ try {
   execSync('gh-pages -d build', { stdio: 'inherit' });
 
   console.log('Deployment completed successfully!');
+  
+  // Note: After deployment, you need to manually update the env-config.js file
+  // on the deployed site with the OpenAI API key using the update-env-config.js script:
+  // node scripts/update-env-config.js YOUR_OPENAI_API_KEY
+  console.log('\nIMPORTANT: To enable transcription, run the following command:');
+  console.log(`node scripts/update-env-config.js YOUR_OPENAI_API_KEY`);
 } catch (error) {
   console.error('Deployment failed:', error);
   process.exit(1);

@@ -9,12 +9,15 @@ const envConfigTemplate = fs.readFileSync(
 
 // Replace placeholders with actual environment variables
 let envConfigContent = envConfigTemplate;
-['REACT_APP_SUPABASE_URL', 'REACT_APP_SUPABASE_ANON_KEY', 'REACT_APP_OPENAI_API_KEY'].forEach(key => {
+['REACT_APP_SUPABASE_URL', 'REACT_APP_SUPABASE_ANON_KEY'].forEach(key => {
   envConfigContent = envConfigContent.replace(
     `%${key}%`,
     process.env[key] || ''
   );
 });
+
+// Use a placeholder for OpenAI API key to avoid exposing it in the repository
+// The actual key will be set at runtime
 
 // Write the generated config
 fs.writeFileSync(

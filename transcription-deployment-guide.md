@@ -1,47 +1,25 @@
 # Video Transcription Deployment Guide
 
-This guide explains how to deploy the server-side transcription solution for the workshop application.
+This guide explains how to deploy the video transcription solution for the workshop application.
 
 ## Overview
 
-We've implemented a server-side solution for video transcription using Supabase Edge Functions. This approach:
+We've implemented a client-side solution for video transcription using the OpenAI API. This approach:
 
-1. Removes the need for users to provide their own OpenAI API keys
-2. Improves security by keeping API keys on the server
+1. Uses a placeholder for the API key in the repository to avoid exposing it
+2. Requires a post-deployment step to set the actual API key
 3. Provides a consistent user experience
 
 ## Deployment Steps
 
-### 1. Deploy the Supabase Edge Function
+### 1. Deploy the Application
 
-First, you need to deploy the transcription Edge Function to your Supabase project:
-
-```bash
-# Navigate to the Supabase functions directory
-cd supabase/functions
-
-# Deploy the function
-supabase functions deploy transcribe --no-verify-jwt
-```
-
-### 2. Set the OpenAI API Key in Supabase
-
-Set your OpenAI API key as a secret in your Supabase project:
-
-```bash
-supabase secrets set OPENAI_API_KEY=your_openai_api_key
-```
-
-Replace `your_openai_api_key` with your actual OpenAI API key.
-
-### 3. Deploy the Updated Application
-
-Deploy the updated application code:
+Deploy the application code:
 
 ```bash
 # Commit your changes
 git add .
-git commit -m "Implement server-side transcription with Supabase Edge Function"
+git commit -m "Implement video transcription with OpenAI API"
 
 # Push to your repository
 git push
@@ -50,9 +28,24 @@ git push
 npm run deploy
 ```
 
+### 2. Update the Environment Configuration
+
+After deployment, you need to update the environment configuration with your OpenAI API key:
+
+```bash
+node scripts/update-env-config.js YOUR_OPENAI_API_KEY
+```
+
+Replace `YOUR_OPENAI_API_KEY` with your actual OpenAI API key.
+
+If you're using GitHub Pages or another hosting service where you don't have direct access to the server:
+1. Download the env-config.js file from the deployed site
+2. Update it locally with the update-env-config.js script
+3. Upload the updated file back to the server
+
 ## Verification
 
-After deployment, verify that the transcription feature works correctly:
+After deployment and updating the environment configuration, verify that the transcription feature works correctly:
 
 1. Navigate to the Video Reflection page in the application
 2. Record a short video
@@ -63,33 +56,27 @@ After deployment, verify that the transcription feature works correctly:
 
 If you encounter issues with the transcription feature:
 
-### Function Not Found
+### API Key Not Found
 
-If you see "Function not found" errors:
-- Verify that the function was deployed correctly
-- Check the function URL in the videoService.js file
+If you see "API key missing" errors:
+- Verify that you've updated the env-config.js file with your OpenAI API key
+- Check that the env-config.js file is being loaded correctly
 
 ### Transcription Fails
 
 If transcription fails:
-- Check that the OpenAI API key is set correctly in Supabase secrets
+- Check that your OpenAI API key is valid and has access to the Whisper API
 - Verify that the audio format is supported (should be webm)
-- Check the Supabase Edge Function logs for errors
-
-### CORS Issues
-
-If you see CORS errors:
-- Verify that the corsHeaders are set correctly in the Edge Function
-- Check that the function is being called with the correct headers
+- Check the browser console for errors
 
 ## Maintenance
 
 ### Updating the OpenAI API Key
 
-If you need to update the OpenAI API key:
+If you need to update the OpenAI API key, run the update-env-config.js script again with the new key:
 
 ```bash
-supabase secrets set OPENAI_API_KEY=your_new_openai_api_key
+node scripts/update-env-config.js YOUR_NEW_OPENAI_API_KEY
 ```
 
 ### Monitoring Usage
@@ -98,9 +85,9 @@ Monitor your OpenAI API usage to ensure you stay within your plan limits. The Wh
 
 ## Security Considerations
 
-- The Edge Function is deployed with `--no-verify-jwt`, which means it can be called without authentication. This is acceptable for this use case since:
-  - The function only performs transcription and doesn't expose sensitive data
-  - The OpenAI API key is kept secure on the server
-  - The function is rate-limited by Supabase
-
-- If you want to restrict access to authenticated users only, remove the `--no-verify-jwt` flag when deploying the function and update the videoService.js file to include authentication headers.
+- The OpenAI API key is not stored in the git repository, which improves security
+- The API key is stored in the deployed env-config.js file, which is accessible to users
+- Consider implementing additional security measures if needed, such as:
+  - Rate limiting
+  - User authentication
+  - Server-side proxying of API requests
