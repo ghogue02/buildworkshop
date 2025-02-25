@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import VideoRecorder from './components/VideoRecorder';
 import { videoService } from './services/videoService';
-import { setOpenAIKey } from './config';
 
 function VideoReflection({ sessionId }) {
   const [recordedVideo, setRecordedVideo] = useState(null);
@@ -20,12 +19,8 @@ function VideoReflection({ sessionId }) {
     }
   };
 
-  // Set a default OpenAI API key for transcription
-  useEffect(() => {
-    // This is just a placeholder - in a real app, you would use a server-side API key
-    // or implement a secure way to handle API keys
-    setOpenAIKey('sk-yourapikeyhere');
-  }, []);
+  // We don't need to set the OpenAI API key here anymore
+  // as it's now provided in the environment variables
 
   // Load existing recording if available
   useEffect(() => {
