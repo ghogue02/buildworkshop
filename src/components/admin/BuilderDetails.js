@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 
-function BuilderDetails({ builder }) {
+function BuilderDetails({ builder, onDeleteBuilder }) {
   const [adminNotes, setAdminNotes] = useState('');
   const [lastUpdated, setLastUpdated] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -195,13 +195,32 @@ function BuilderDetails({ builder }) {
           <h2 style={{ margin: 0 }}>{builder.userInfo.name}</h2>
           <p style={{ margin: '5px 0 0 0', color: '#888' }}>{builder.userInfo.email}</p>
         </div>
-        <div style={{
-          padding: '8px 16px',
-          backgroundColor: '#1a1a1a',
-          borderRadius: '20px',
-          fontSize: '14px'
-        }}>
-          {builder.progress.completed} of {builder.progress.total} sections complete
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div style={{
+            padding: '8px 16px',
+            backgroundColor: '#1a1a1a',
+            borderRadius: '20px',
+            fontSize: '14px'
+          }}>
+            {builder.progress.completed} of {builder.progress.total} sections complete
+          </div>
+          <button
+            onClick={() => onDeleteBuilder && onDeleteBuilder(builder.sessionId)}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#ff4444',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}
+          >
+            <span style={{ fontSize: '16px' }}>×</span> Delete Builder
+          </button>
         </div>
       </div>
 

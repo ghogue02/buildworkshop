@@ -8,6 +8,7 @@ function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedBuilder, setSelectedBuilder] = useState(null);
   const [error, setError] = useState(null);
+  const [deleteStatus, setDeleteStatus] = useState(null);
 
   // Fetch all builders' data
   useEffect(() => {
@@ -92,9 +93,95 @@ function AdminDashboard() {
     // In a production app, you might want to update only the affected builder
     await fetchBuilders();
   };
-
   const handleBuilderSelect = (sessionId) => {
     setSelectedBuilder(sessionId);
+  };
+
+  const deleteBuilder = async (sessionId) => {
+    if (!window.confirm('Are you sure you want to delete this builder? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setDeleteStatus({ type: 'info', message: 'Deleting builder...' });
+
+      // First verify if the user exists and get all their data
+      const { data: userData, error: fetchError } = await supabase
+        .from('user_inputs')
+        .select('id')
+        .eq('session_id', sessionId);
+
+      if (fetchError) {
+        console.error('Error fetching user data before deletion:', fetchError);
+        throw fetchError;
+      }
+
+      console.log(`Found ${userData.length} records to delete for session ${sessionId}`);
+
+      // Delete from user_inputs table
+      const { data: deletedData, error: userInputsError } = await supabase
+        .from('user_inputs')
+        .delete()
+        .eq('session_id', sessionId)
+        .select();
+
+      if (userInputsError) {
+        console.error('Error deleting from user_inputs:', userInputsError);
+        throw userInputsError;
+      }
+
+      console.log(`Successfully deleted ${deletedData.length} records from user_inputs`);
+
+      // Delete from admin_notes table
+      const { data: deletedNotes, error: adminNotesError } = await supabase
+        .from('admin_notes')
+        .delete()
+        .eq('session_id', sessionId)
+        .select();
+
+      if (adminNotesError && adminNotesError.code !== 'PGRST116') {
+        console.error('Error deleting from admin_notes:', adminNotesError);
+        throw adminNotesError;
+      }
+
+      console.log(`Successfully deleted ${deletedNotes?.length || 0} records from admin_notes`);
+
+      // Verify deletion was successful
+      const { data: verifyData, error: verifyError } = await supabase
+        .from('user_inputs')
+        .select('id')
+        .eq('session_id', sessionId);
+
+      if (verifyError) {
+        console.error('Error verifying deletion:', verifyError);
+      } else if (verifyData.length > 0) {
+        console.warn(`Warning: ${verifyData.length} records still exist after deletion`);
+      } else {
+        console.log('Verification successful: All records deleted');
+      }
+
+      // Update local state
+      setBuilders(prevBuilders => prevBuilders.filter(builder => builder.sessionId !== sessionId));
+      
+      // If the deleted builder was selected, select another one or set to null
+      if (selectedBuilder === sessionId) {
+        const remainingBuilders = builders.filter(builder => builder.sessionId !== sessionId);
+        setSelectedBuilder(remainingBuilders.length > 0 ? remainingBuilders[0].sessionId : null);
+      }
+
+      setDeleteStatus({ type: 'success', message: 'Builder deleted successfully' });
+      
+      // Clear status after 3 seconds
+      setTimeout(() => {
+        setDeleteStatus(null);
+      }, 3000);
+    } catch (error) {
+      console.error('Error deleting builder:', error);
+      setDeleteStatus({ type: 'error', message: `Error deleting builder: ${error.message}` });
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (error) {
@@ -138,9 +225,25 @@ function AdminDashboard() {
 
       {/* Main Content Area */}
       <div style={{ padding: '20px' }}>
+        {deleteStatus && (
+          <div
+            style={{
+              padding: '10px 15px',
+              marginBottom: '20px',
+              borderRadius: '4px',
+              backgroundColor: deleteStatus.type === 'error' ? '#ff4444' :
+                              deleteStatus.type === 'success' ? '#4CAF50' : '#333',
+              color: 'white'
+            }}
+          >
+            {deleteStatus.message}
+          </div>
+        )}
+        
         {selectedBuilder ? (
           <BuilderDetails
             builder={builders.find(b => b.sessionId === selectedBuilder)}
+            onDeleteBuilder={deleteBuilder}
           />
         ) : (
           <div style={{ textAlign: 'center', color: '#666' }}>
