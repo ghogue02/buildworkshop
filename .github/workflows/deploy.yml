@@ -1,0 +1,52 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          REACT_APP_SUPABASE_URL: ${{ secrets.REACT_APP_SUPABASE_URL }}
+          REACT_APP_SUPABASE_ANON_KEY: ${{ secrets.REACT_APP_SUPABASE_ANON_KEY }}
+
+      - name: Generate env-config.js
+        run: node scripts/generate-env-config.js
+
+      - name: Update env-config.js with OpenAI API key
+        run: |
+          cat > build/env-config.js << EOL
+          window._env_ = {
+            REACT_APP_SUPABASE_URL: "${{ secrets.REACT_APP_SUPABASE_URL }}",
+            REACT_APP_SUPABASE_ANON_KEY: "${{ secrets.REACT_APP_SUPABASE_ANON_KEY }}",
+            REACT_APP_OPENAI_API_KEY: "${{ secrets.REACT_APP_OPENAI_API_KEY }}"
+          };
+          EOL
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: build
+          branch: gh-pages
+          clean: true
