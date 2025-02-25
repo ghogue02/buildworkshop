@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import VideoRecorder from './components/VideoRecorder';
 import { videoService } from './services/videoService';
-import { setOpenAIKey } from './config';
 
 function VideoReflection({ sessionId }) {
   const [recordedVideo, setRecordedVideo] = useState(null);
@@ -19,19 +18,6 @@ function VideoReflection({ sessionId }) {
       console.log(logMessage);
     }
   };
-
-  // Set the OpenAI API key at runtime
-  useEffect(() => {
-    // For security reasons, we'll use a prompt to get the API key
-    // In a production environment, this would be handled server-side
-    const apiKey = prompt("Please enter your OpenAI API key for transcription (or cancel to skip transcription):");
-    if (apiKey) {
-      setOpenAIKey(apiKey);
-      debugLog('OpenAI API key set');
-    } else {
-      debugLog('No OpenAI API key provided, transcription will be limited');
-    }
-  }, []);
 
   // Load existing recording if available
   useEffect(() => {

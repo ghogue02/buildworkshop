@@ -83,7 +83,7 @@ class VideoService {
   }
 
   /**
-   * Transcribe a video using OpenAI's Whisper API
+   * Transcribe a video using the Supabase Edge Function
    * @param {Blob} audioBlob - The audio blob to transcribe
    * @returns {Promise<string>} - The transcription text
    */
@@ -95,44 +95,45 @@ class VideoService {
     }
 
     try {
-      // Initialize OpenAI with API key from config
-      const apiKey = config.openai.apiKey;
-      if (!apiKey) {
-        this.debugLog('OpenAI API key is not available, skipping transcription');
-        return "Transcription not available (API key missing)";
+      // Create a form data object with the audio file
+      const formData = new FormData();
+      formData.append('file', audioBlob, 'audio.webm');
+      
+      // Get the Supabase URL from config
+      const supabaseUrl = config.supabase.url;
+      if (!supabaseUrl) {
+        this.debugLog('Supabase URL is not available, skipping transcription');
+        return "Transcription not available (Supabase URL missing)";
       }
       
-      try {
-        openaiService.initializeOpenAI(apiKey);
-        
-        // Create a form data object with the audio file
-        const formData = new FormData();
-        formData.append('file', audioBlob, 'audio.webm');
-        formData.append('model', 'whisper-1');
-        formData.append('language', 'en');
-        
-        // Make a direct fetch request to OpenAI API
-        const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`
-          },
-          body: formData
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(`OpenAI API error: ${errorData.error?.message || response.statusText}`);
+      // Call the Supabase Edge Function
+      const functionUrl = `${supabaseUrl}/functions/v1/transcribe`;
+      this.debugLog('Calling transcription function', { url: functionUrl });
+      
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          // Include Supabase anon key if needed
+          'apikey': config.supabase.anonKey
         }
-        
-        const data = await response.json();
-        this.debugLog('Transcription successful', data);
-        
-        return data.text;
-      } catch (error) {
-        this.debugLog('Error in OpenAI transcription', error);
-        return `Transcription failed: ${error.message}`;
+      });
+      
+      if (!response.ok) {
+        let errorMessage = response.statusText;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          // If response is not JSON, use status text
+        }
+        throw new Error(`Transcription API error: ${errorMessage}`);
       }
+      
+      const data = await response.json();
+      this.debugLog('Transcription successful', data);
+      
+      return data.text;
     } catch (error) {
       this.debugLog('Error in transcribeAudio', error);
       console.error('Error transcribing audio:', error);
