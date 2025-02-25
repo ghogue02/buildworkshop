@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import VideoRecorder from './components/VideoRecorder';
 import { videoService } from './services/videoService';
+import { config } from './config';
 
 function VideoReflection({ sessionId }) {
   const [recordedVideo, setRecordedVideo] = useState(null);
@@ -18,6 +19,15 @@ function VideoReflection({ sessionId }) {
       console.log(logMessage);
     }
   };
+
+  // Log OpenAI API key status
+  useEffect(() => {
+    if (config.openai.apiKey) {
+      debugLog('OpenAI API key is available');
+    } else {
+      debugLog('OpenAI API key is not available, transcription will be limited');
+    }
+  }, []);
 
   // Load existing recording if available
   useEffect(() => {

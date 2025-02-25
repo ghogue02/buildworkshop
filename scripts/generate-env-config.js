@@ -9,13 +9,12 @@ const envConfigTemplate = fs.readFileSync(
 
 // Replace placeholders with actual environment variables
 let envConfigContent = envConfigTemplate;
-['REACT_APP_SUPABASE_URL', 'REACT_APP_SUPABASE_ANON_KEY'].forEach(key => {
+['REACT_APP_SUPABASE_URL', 'REACT_APP_SUPABASE_ANON_KEY', 'REACT_APP_OPENAI_API_KEY'].forEach(key => {
   envConfigContent = envConfigContent.replace(
     `%${key}%`,
     process.env[key] || ''
   );
 });
-// Note: OpenAI API key is now handled server-side via Supabase Edge Function
 
 // Write the generated config
 fs.writeFileSync(
