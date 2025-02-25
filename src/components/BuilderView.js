@@ -408,7 +408,7 @@ function BuilderView() {
         }
 
         console.log('Section data saved successfully');
-        setCurrentSection(getNextSection(sectionName));
+        // Don't automatically advance to next section - let the user control navigation
       } catch (error) {
         console.error('Error saving data:', error);
         
