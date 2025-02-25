@@ -176,43 +176,52 @@ function VideoRecorder({ sessionId, onRecordingComplete }) {
       // Stop media tracks
       stopMediaTracks();
       
-      // Upload video (now returns a data URL)
-      setRecordingStatus('Processing video...');
-      debugLog('Processing video');
-      const dataUrl = await videoService.uploadVideo(videoBlob, sessionId);
+      let dataUrl;
+      let transcriptText;
       
-      // Transcribe audio
-      setRecordingStatus('Generating transcript...');
-      debugLog('Transcribing audio');
-      const transcriptText = await videoService.transcribeAudio(videoBlob);
-      setTranscript(transcriptText);
+      try {
+        // Upload video (now returns a data URL)
+        setRecordingStatus('Processing video...');
+        debugLog('Processing video');
+        dataUrl = await videoService.uploadVideo(videoBlob, sessionId);
+      } catch (error) {
+        debugLog('Error processing video, using object URL instead', error);
+        dataUrl = videoObjectUrl;
+        setRecordingStatus('Video processing failed, using local version');
+      }
+      
+      try {
+        // Transcribe audio
+        setRecordingStatus('Generating transcript...');
+        debugLog('Transcribing audio');
+        transcriptText = await videoService.transcribeAudio(videoBlob);
+        setTranscript(transcriptText);
+      } catch (error) {
+        debugLog('Error transcribing audio', error);
+        transcriptText = "Transcription failed. Please try again later.";
+        setTranscript(transcriptText);
+        setRecordingStatus('Transcription failed');
+      }
       
       // Save recording data
       setRecordingStatus('Saving recording data...');
       debugLog('Saving recording data');
       try {
-        await videoService.saveVideoRecording(sessionId, dataUrl, transcriptText);
+        await videoService.saveVideoRecording(sessionId, dataUrl || videoObjectUrl, transcriptText);
         setRecordingStatus('Recording complete!');
         debugLog('Recording process complete');
-        
-        // Call the callback if provided
-        if (onRecordingComplete) {
-          onRecordingComplete({
-            videoUrl: dataUrl,
-            transcript: transcriptText
-          });
-        }
       } catch (error) {
         // If saving to database fails, still keep the recording in the UI
         debugLog('Error saving to database, but keeping recording in UI', error);
         setRecordingStatus('Recording saved locally (database save failed)');
-        
-        if (onRecordingComplete) {
-          onRecordingComplete({
-            videoUrl: videoObjectUrl, // Use the local object URL instead
-            transcript: transcriptText
-          });
-        }
+      }
+      
+      // Call the callback if provided
+      if (onRecordingComplete) {
+        onRecordingComplete({
+          videoUrl: dataUrl || videoObjectUrl,
+          transcript: transcriptText
+        });
       }
       
       // Clear status after 3 seconds
