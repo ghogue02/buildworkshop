@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { supabase } from './supabaseClient';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { supabase, withRetry } from './supabaseClient';
 
 function StartBuild({ onSave, sessionId }) {
   const [whatBuilt, setWhatBuilt] = useState('');
@@ -8,84 +8,245 @@ function StartBuild({ onSave, sessionId }) {
   const [aiHelp, setAiHelp] = useState('');
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(true);
+  const [saveStatus, setSaveStatus] = useState(null);
+  const isMounted = useRef(true);
+  const lastSaveTime = useRef(null);
+  const saveAttempts = useRef(0);
+
+  // Debug logging function
+  const debugLog = (message, data = null) => {
+    const timestamp = new Date().toISOString();
+    const logMessage = `[StartBuild Debug ${timestamp}] ${message}`;
+    
+    if (data) {
+      console.log(logMessage, data);
+    } else {
+      console.log(logMessage);
+    }
+  };
 
   // Load existing data
   useEffect(() => {
     const loadExistingData = async () => {
-      if (!sessionId) return;
+      if (!sessionId) {
+        debugLog('No sessionId provided, skipping data load');
+        return;
+      }
 
+      debugLog(`Loading existing data for session ${sessionId}`);
       try {
-        const { data, error } = await supabase
-          .from('user_inputs')
-          .select('input_data')
-          .eq('session_id', sessionId)
-          .eq('section_name', 'Start Build')
-          .maybeSingle();
+        // Use withRetry for better reliability
+        const { data, error } = await withRetry(async () => {
+          debugLog('Fetching Start Build data from Supabase');
+          return await supabase
+            .from('user_inputs')
+            .select('input_data')
+            .eq('session_id', sessionId)
+            .eq('section_name', 'Start Build')
+            .maybeSingle();
+        }, 3, 2000);
 
-        if (error && error.code !== 'PGRST116') {
-          throw error;
+        if (error) {
+          if (error.code !== 'PGRST116') {
+            debugLog(`Error fetching data: ${error.code}`, error);
+            throw error;
+          } else {
+            debugLog('No existing data found (PGRST116)');
+          }
         }
 
         if (data?.input_data) {
+          debugLog('Data loaded successfully', data.input_data);
           setWhatBuilt(data.input_data.whatBuilt || '');
           setFunctionality(data.input_data.functionality || '');
           setFutureAdditions(data.input_data.futureAdditions || '');
           setAiHelp(data.input_data.aiHelp || '');
+        } else {
+          debugLog('No data or empty data returned');
         }
       } catch (error) {
-        console.error('Error loading data:', error.message);
+        debugLog('Error loading data:', error);
+        console.error('Error loading data:', error);
       } finally {
-        setLoading(false);
+        if (isMounted.current) {
+          setLoading(false);
+          debugLog('Loading state set to false');
+        }
       }
     };
 
     loadExistingData();
+    
+    // Cleanup function
+    return () => {
+      isMounted.current = false;
+      debugLog('Component unmounting, isMounted set to false');
+    };
   }, [sessionId]);
 
   const validate = () => {
+    debugLog('Validating form data');
     let newErrors = {};
     if (!whatBuilt.trim()) newErrors.whatBuilt = 'What you built is required';
     if (!functionality.trim()) newErrors.functionality = 'Functionality is required';
     if (!futureAdditions.trim()) newErrors.futureAdditions = 'Future additions is required';
     if (!aiHelp.trim()) newErrors.aiHelp = 'AI help description is required';
+    
+    const isValid = Object.keys(newErrors).length === 0;
+    debugLog(`Validation result: ${isValid ? 'Valid' : 'Invalid'}`, newErrors);
+    
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return isValid;
   };
 
   const saveData = useCallback(async () => {
-    if (!sessionId || !validate()) return;
-
-    try {
-      const { error } = await supabase
-        .from('user_inputs')
-        .upsert({
-          session_id: sessionId,
-          section_name: 'Start Build',
-          input_data: {
-            whatBuilt,
-            functionality,
-            futureAdditions,
-            aiHelp
-          }
-        }, {
-          onConflict: 'session_id,section_name'
-        });
-
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error saving data:', error.message);
+    const currentTime = new Date();
+    saveAttempts.current += 1;
+    const attemptNumber = saveAttempts.current;
+    
+    debugLog(`Save attempt #${attemptNumber} started`);
+    
+    if (!sessionId) {
+      debugLog('No sessionId available, cannot save');
+      return;
     }
-  }, [sessionId, whatBuilt, functionality, futureAdditions, aiHelp]);
+    
+    if (!validate()) {
+      debugLog('Validation failed, not saving');
+      return;
+    }
+
+    // Track time since last save
+    const timeSinceLastSave = lastSaveTime.current
+      ? currentTime - lastSaveTime.current
+      : null;
+    
+    debugLog(`Time since last save: ${timeSinceLastSave ? `${timeSinceLastSave}ms` : 'First save'}`);
+    
+    setSaveStatus('Saving...');
+    try {
+      debugLog('Preparing data for save', {
+        session_id: sessionId,
+        section_name: 'Start Build',
+        data: { whatBuilt, functionality, futureAdditions, aiHelp }
+      });
+
+      // First check if a record already exists
+      debugLog('Checking if record exists');
+      const { data: existingData, error: fetchError } = await withRetry(async () => {
+        return await supabase
+          .from('user_inputs')
+          .select('id')
+          .eq('session_id', sessionId)
+          .eq('section_name', 'Start Build')
+          .maybeSingle();
+      }, 3, 2000);
+
+      if (fetchError) {
+        debugLog('Error checking for existing data:', fetchError);
+        throw fetchError;
+      }
+
+      let error;
+      if (existingData) {
+        debugLog(`Updating existing record ID: ${existingData.id}`);
+        // Update existing record
+        const { error: updateError } = await withRetry(async () => {
+          return await supabase
+            .from('user_inputs')
+            .update({
+              input_data: {
+                whatBuilt,
+                functionality,
+                futureAdditions,
+                aiHelp
+              },
+              updated_at: new Date().toISOString()
+            })
+            .eq('session_id', sessionId)
+            .eq('section_name', 'Start Build');
+        }, 3, 2000);
+        
+        error = updateError;
+      } else {
+        debugLog('Creating new record');
+        // Insert new record
+        const { error: insertError } = await withRetry(async () => {
+          return await supabase
+            .from('user_inputs')
+            .insert({
+              session_id: sessionId,
+              section_name: 'Start Build',
+              input_data: {
+                whatBuilt,
+                functionality,
+                futureAdditions,
+                aiHelp
+              }
+            });
+        }, 3, 2000);
+        
+        error = insertError;
+      }
+
+      if (error) {
+        debugLog('Database operation failed:', error);
+        throw error;
+      }
+
+      lastSaveTime.current = new Date();
+      const saveTime = lastSaveTime.current - currentTime;
+      debugLog(`Save successful, took ${saveTime}ms`);
+      setSaveStatus('Saved');
+      
+      // Clear save status after 3 seconds
+      setTimeout(() => {
+        if (isMounted.current) {
+          setSaveStatus(null);
+        }
+      }, 3000);
+      
+      // Call onSave if provided
+      if (onSave) {
+        debugLog('Calling onSave callback');
+        onSave('Start Build', {
+          whatBuilt,
+          functionality,
+          futureAdditions,
+          aiHelp
+        });
+      }
+    } catch (error) {
+      debugLog('Error saving data:', error);
+      console.error('Error saving data:', error);
+      setSaveStatus(`Error: ${error.message || 'Failed to save'}`);
+      
+      // Clear error status after 5 seconds
+      setTimeout(() => {
+        if (isMounted.current) {
+          setSaveStatus(null);
+        }
+      }, 5000);
+    }
+  }, [sessionId, whatBuilt, functionality, futureAdditions, aiHelp, onSave]);
 
   // Debounce save after 1 second of no changes
   useEffect(() => {
-    if (loading) return; // Don't save while initial data is loading
+    if (loading) {
+      debugLog('Skip auto-save: Component is still loading');
+      return; // Don't save while initial data is loading
+    }
     
+    debugLog('Auto-save timer started (1000ms delay)');
     const timer = setTimeout(() => {
+      debugLog('Auto-save timer triggered, calling saveData()');
       saveData();
     }, 1000);
 
-    return () => clearTimeout(timer);
+    return () => {
+      debugLog('Auto-save timer cleared due to dependency change');
+      clearTimeout(timer);
+    };
   }, [whatBuilt, functionality, futureAdditions, aiHelp, saveData, loading]);
 
   if (loading) {
@@ -135,7 +296,20 @@ function StartBuild({ onSave, sessionId }) {
         border: '1px solid white', 
         borderRadius: '8px' 
       }}>
-        <h2>Build Progress</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+          <h2>Build Progress</h2>
+          {saveStatus && (
+            <div style={{
+              padding: '5px 10px',
+              borderRadius: '4px',
+              backgroundColor: saveStatus.includes('Error') ? '#ff4444' : '#4CAF50',
+              color: 'white',
+              fontSize: '14px'
+            }}>
+              {saveStatus}
+            </div>
+          )}
+        </div>
         <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
           {errors.whatBuilt && <p style={{ color: 'red' }}>{errors.whatBuilt}</p>}
           <label htmlFor="whatBuilt">What did you build?</label>
