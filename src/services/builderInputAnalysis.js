@@ -1,4 +1,6 @@
 import { supabase } from '../supabaseClient';
+import { openaiService } from './openaiService';
+import { config } from '../config';
 
 class BuilderInputAnalysis {
   constructor() {
@@ -278,37 +280,62 @@ class BuilderInputAnalysis {
   async generateBuilderSummary(builder) {
     try {
       const sections = builder.sections;
-      const summary = [];
-
-      // What they did
-      if (sections['Problem Definition'] && sections['MVP Planner']) {
-        summary.push(`The builder tackled ${sections['Problem Definition'].summary} and developed a solution involving ${sections['MVP Planner'].howItWorks}.`);
+      const apiKey = config.openai.apiKey;
+      
+      if (!apiKey) {
+        console.warn('OpenAI API key not found. Using fallback summary generation.');
+        return this.generateFallbackSummary(sections);
       }
-
-      // What they learned
-      if (sections['Give & Get Feedback']) {
-        summary.push(`Through feedback, they learned ${sections['Give & Get Feedback'].capture}.`);
+      
+      // Initialize OpenAI
+      openaiService.initializeOpenAI(apiKey);
+      
+      // Create a prompt for OpenAI to generate a summary
+      const prompt = `
+        I need a 4-sentence summary of a builder's journey through a workshop, based on the following data:
+        ${JSON.stringify(sections, null, 2)}
+        
+        The 4 sentences should cover:
+        1. What they did (based on Problem Definition and MVP Planner sections)
+        2. What they learned (based on Give & Get Feedback section)
+        3. What they tried (based on Start Build section)
+        4. What they took away (based on Presentations & Retro section)
+        
+        If any of these sections are missing or incomplete, create a reasonable summary based on available data.
+        If no data is available for a particular aspect, indicate that section wasn't completed.
+        
+        Format the response as plain text with 4 sentences, without numbering.
+      `;
+      
+      try {
+        const completion = await openaiService.queueRequest(async () => {
+          const response = await openaiService.openai.chat.completions.create({
+            model: "gpt-4-turbo-preview",
+            messages: [
+              {
+                role: "system",
+                content: "You are an expert at summarizing user journeys and learning experiences in clear, concise language."
+              },
+              {
+                role: "user",
+                content: prompt
+              }
+            ],
+            temperature: 0.7,
+            max_tokens: 500
+          });
+          
+          return response.choices[0].message.content.trim();
+        });
+        
+        return {
+          summary: completion,
+          isAIGenerated: this.detectAIGenerated(sections)
+        };
+      } catch (error) {
+        console.error('Error calling OpenAI:', error);
+        return this.generateFallbackSummary(sections);
       }
-
-      // What they tried
-      if (sections['Start Build']) {
-        summary.push(`They experimented with ${sections['Start Build'].whatBuilt} and utilized AI to ${sections['Start Build'].aiHelp}.`);
-      }
-
-      // What they took away
-      if (sections['Presentations & Retro']) {
-        summary.push(`Their key takeaway was ${sections['Presentations & Retro'].impact}.`);
-      }
-
-      // If any section is missing, provide a generic summary
-      while (summary.length < 4) {
-        summary.push("This section was not completed.");
-      }
-
-      return {
-        summary: summary.join(' '),
-        isAIGenerated: this.detectAIGenerated(sections)
-      };
     } catch (error) {
       console.error('Error generating builder summary:', error);
       return {
@@ -316,6 +343,61 @@ class BuilderInputAnalysis {
         isAIGenerated: false
       };
     }
+  }
+  
+  generateFallbackSummary(sections) {
+    const summary = [];
+    let hasSomeData = false;
+
+    // What they did
+    if (sections['Problem Definition'] && sections['Problem Definition'].summary) {
+      hasSomeData = true;
+      const problemSummary = sections['Problem Definition'].summary;
+      const solution = sections['MVP Planner'] && sections['MVP Planner'].howItWorks
+        ? sections['MVP Planner'].howItWorks
+        : "a solution that wasn't fully documented";
+      
+      summary.push(`The builder tackled ${problemSummary} and worked on developing ${solution}.`);
+    } else if (sections['Problem Definition']) {
+      hasSomeData = true;
+      summary.push(`The builder defined a problem but didn't fully document their solution approach.`);
+    } else {
+      summary.push(`The builder didn't complete the problem definition section.`);
+    }
+
+    // What they learned
+    if (sections['Give & Get Feedback'] && sections['Give & Get Feedback'].capture) {
+      hasSomeData = true;
+      summary.push(`Through feedback, they learned ${sections['Give & Get Feedback'].capture}.`);
+    } else {
+      summary.push(`The builder didn't document what they learned from feedback.`);
+    }
+
+    // What they tried
+    if (sections['Start Build'] && sections['Start Build'].whatBuilt) {
+      hasSomeData = true;
+      const built = sections['Start Build'].whatBuilt;
+      const aiHelp = sections['Start Build'].aiHelp
+        ? `utilized AI to ${sections['Start Build'].aiHelp}`
+        : "used various tools and approaches";
+      
+      summary.push(`They experimented with ${built} and ${aiHelp}.`);
+    } else {
+      summary.push(`The builder didn't document their build process.`);
+    }
+
+    // What they took away
+    if (sections['Presentations & Retro'] && sections['Presentations & Retro'].impact) {
+      hasSomeData = true;
+      summary.push(`Their key takeaway was ${sections['Presentations & Retro'].impact}.`);
+    } else {
+      summary.push(`The builder didn't document their final takeaways.`);
+    }
+
+    return {
+      summary: summary.join(' '),
+      isAIGenerated: hasSomeData ? this.detectAIGenerated(sections) : false
+    };
   }
 
   detectAIGenerated(sections) {
