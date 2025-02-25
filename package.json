@@ -2,7 +2,7 @@
   "name": "workshop-app",
   "version": "0.1.0",
   "private": true,
-  "homepage": "/",
+  "homepage": "https://ghogue02.github.io/builderworkshop/",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.5.0",
     "@supabase/supabase-js": "^2.48.1",
