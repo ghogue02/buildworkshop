@@ -58,6 +58,11 @@ function VideoReflection({ sessionId }) {
     setRecordedVideo(recordingData.videoUrl);
     setTranscript(recordingData.transcript || '');
   };
+  
+  const handleTranscriptionComplete = (transcriptionText) => {
+    debugLog('Transcription complete', { text: transcriptionText });
+    setTranscript(transcriptionText);
+  };
 
   return (
     <div style={{ marginBottom: '20px', padding: '20px', border: '1px solid white', borderRadius: '8px' }}>
@@ -110,6 +115,7 @@ function VideoReflection({ sessionId }) {
         <VideoRecorder
           sessionId={sessionId}
           onRecordingComplete={handleRecordingComplete}
+          onTranscriptionComplete={handleTranscriptionComplete}
         />
       </div>
     </div>

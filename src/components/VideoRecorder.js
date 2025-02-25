@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { videoService } from '../services/videoService';
 
-function VideoRecorder({ sessionId, onRecordingComplete }) {
+function VideoRecorder({ sessionId, onRecordingComplete, onTranscriptionComplete }) {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [recordingStatus, setRecordingStatus] = useState('');
@@ -9,12 +9,14 @@ function VideoRecorder({ sessionId, onRecordingComplete }) {
   const [transcript, setTranscript] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [speechRecognitionSupported, setSpeechRecognitionSupported] = useState(true);
   
   const videoRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const streamRef = useRef(null);
   const chunksRef = useRef([]);
   const timerRef = useRef(null);
+  const recognitionRef = useRef(null);
   
   const MAX_RECORDING_TIME = 120; // 2 minutes in seconds
   
@@ -29,6 +31,17 @@ function VideoRecorder({ sessionId, onRecordingComplete }) {
       console.log(logMessage);
     }
   };
+
+  // Check if Speech Recognition is supported
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setSpeechRecognitionSupported(false);
+      debugLog('Speech recognition is not supported in this browser');
+    } else {
+      debugLog('Speech recognition is supported in this browser');
+    }
+  }, []);
 
   // Load existing recording if available
   useEffect(() => {
@@ -63,6 +76,15 @@ function VideoRecorder({ sessionId, onRecordingComplete }) {
     // Cleanup function
     return () => {
       stopMediaTracks();
+      
+      // Stop speech recognition if active
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          // Ignore errors when stopping recognition
+        }
+      }
     };
   }, [sessionId]);
   
@@ -77,6 +99,41 @@ function VideoRecorder({ sessionId, onRecordingComplete }) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
+  };
+  
+  // Setup speech recognition
+  const setupSpeechRecognition = () => {
+    if (!speechRecognitionSupported) return;
+    
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+    
+    recognitionRef.current = new SpeechRecognition();
+    recognitionRef.current.continuous = true;
+    recognitionRef.current.interimResults = true;
+    recognitionRef.current.lang = 'en-US';
+    
+    recognitionRef.current.onresult = (event) => {
+      let interimTranscript = '';
+      let finalTranscript = '';
+      
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript + ' ';
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+      
+      const currentTranscription = finalTranscript || interimTranscript;
+      setTranscript(currentTranscription);
+      debugLog('Transcription updated via Web Speech API', { transcription: currentTranscription });
+    };
+    
+    recognitionRef.current.onerror = (event) => {
+      debugLog('Speech recognition error', event.error);
+    };
   };
   
   // Start recording
@@ -125,6 +182,17 @@ function VideoRecorder({ sessionId, onRecordingComplete }) {
       setRecordingStatus('Recording...');
       debugLog('Recording started');
       
+      // Start speech recognition
+      if (speechRecognitionSupported) {
+        setupSpeechRecognition();
+        try {
+          recognitionRef.current.start();
+          debugLog('Speech recognition started');
+        } catch (error) {
+          debugLog('Error starting speech recognition', error);
+        }
+      }
+      
       // Start timer
       timerRef.current = setInterval(() => {
         setRecordingTime(prevTime => {
@@ -159,6 +227,16 @@ function VideoRecorder({ sessionId, onRecordingComplete }) {
         timerRef.current = null;
       }
       
+      // Stop speech recognition
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+          debugLog('Speech recognition stopped');
+        } catch (error) {
+          debugLog('Error stopping speech recognition', error);
+        }
+      }
+      
       setIsRecording(false);
     }
   };
@@ -190,17 +268,13 @@ function VideoRecorder({ sessionId, onRecordingComplete }) {
         setRecordingStatus('Video processing failed, using local version');
       }
       
-      try {
-        // Transcribe audio
-        setRecordingStatus('Generating transcript...');
-        debugLog('Transcribing audio');
-        transcriptText = await videoService.transcribeAudio(videoBlob);
-        setTranscript(transcriptText);
-      } catch (error) {
-        debugLog('Error transcribing audio', error);
-        transcriptText = "Transcription failed. Please try again later.";
-        setTranscript(transcriptText);
-        setRecordingStatus('Transcription failed');
+      // Use the transcription from Web Speech API instead of calling OpenAI
+      transcriptText = transcript || "No transcription available. Your browser may not support speech recognition.";
+      debugLog('Using Web Speech API transcription', { transcription: transcriptText });
+      
+      // Call the transcription complete callback if provided
+      if (onTranscriptionComplete) {
+        onTranscriptionComplete(transcriptText);
       }
       
       // Save recording data

@@ -5,6 +5,7 @@ import { config } from '../config';
 class VideoService {
   constructor() {
     this.debugMode = process.env.NODE_ENV === 'development';
+    this.transcription = null;
   }
 
   // Debug logging function
@@ -83,12 +84,27 @@ class VideoService {
   }
 
   /**
-   * Transcribe a video using OpenAI's Whisper API
+   * Set the transcription from Web Speech API
+   * @param {string} text - The transcription text
+   */
+  setTranscription(text) {
+    this.debugLog('Setting transcription', { text });
+    this.transcription = text;
+  }
+
+  /**
+   * Transcribe a video using Web Speech API or OpenAI's Whisper API as fallback
    * @param {Blob} audioBlob - The audio blob to transcribe
    * @returns {Promise<string>} - The transcription text
    */
   async transcribeAudio(audioBlob) {
-    this.debugLog('Transcribing audio', { size: audioBlob.size });
+    this.debugLog('Transcribing audio', { size: audioBlob?.size });
+    
+    // If we already have a transcription from Web Speech API, use it
+    if (this.transcription) {
+      this.debugLog('Using existing transcription from Web Speech API');
+      return this.transcription;
+    }
     
     if (!audioBlob) {
       throw new Error('Audio blob is required');

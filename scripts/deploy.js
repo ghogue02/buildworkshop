@@ -55,13 +55,15 @@ try {
   console.log('Deploying to GitHub Pages...');
   execSync('gh-pages -d build', { stdio: 'inherit' });
 
+  // Update env-config.js to use Web Speech API
+  console.log('Updating env-config.js to use Web Speech API...');
+  execSync('node scripts/web-speech-api-update.js build/env-config.js', { stdio: 'inherit' });
+  
   console.log('Deployment completed successfully!');
   
-  // Note: After deployment, you need to manually update the env-config.js file
-  // on the deployed site with the OpenAI API key using the update-env-config.js script:
-  // node scripts/update-env-config.js YOUR_OPENAI_API_KEY
-  console.log('\nIMPORTANT: To enable transcription, run the following command:');
-  console.log(`node scripts/update-env-config.js YOUR_OPENAI_API_KEY`);
+  // Note: No need to manually update the env-config.js file anymore
+  console.log('\nTranscription is now enabled using the Web Speech API!');
+  console.log('No OpenAI API key is required.');
 } catch (error) {
   console.error('Deployment failed:', error);
   process.exit(1);
