@@ -243,6 +243,8 @@ function BuilderView() {
           session_id: sessionId,
           section_name: 'User Info',
           input_data: { name, email }
+        }, {
+          onConflict: 'session_id,section_name'
         });
 
       if (error) {
@@ -280,6 +282,8 @@ function BuilderView() {
             session_id: sessionId,
             section_name: sectionName,
             input_data: sectionData
+          }, {
+            onConflict: 'session_id,section_name'
           });
 
         if (error) {
