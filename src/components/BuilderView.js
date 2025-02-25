@@ -8,25 +8,24 @@ import StartBuild from '../StartBuild';
 import PresentationsRetro from '../PresentationsRetro';
 
 const schedule = [
-  { id: 0, name: 'Welcome & Intro: Pursuit & AI', duration: '0:10', start: '10:15 AM', end: '10:25 AM' },
-  { id: 1, name: 'Daily Standup', duration: '0:15', start: '10:25 AM', end: '10:40 AM' },
-  { 
-    id: 2, 
+  { id: 0, name: 'Welcome & Intro: Pursuit & AI', duration: '0:10', start: '11:00 AM', end: '11:10 AM' },
+  { id: 1, name: 'Daily Standup', duration: '0:15', start: '11:10 AM', end: '11:25 AM' },
+  {
+    id: 2,
     name: 'Workshop',
     items: [
-      { name: 'Introducing the workshop', duration: '0:05', start: '10:40 AM', end: '10:45 AM' },
-      { name: 'Analyze & Research', duration: '0:20', start: '10:45 AM', end: '11:05 AM' },
-      { name: 'Develop the MVP Product Idea', duration: '0:30', start: '11:05 AM', end: '11:35 AM' },
-      { name: 'Break', duration: '0:10', start: '11:35 AM', end: '11:45 AM' },
-      { name: 'Give & Get Feedback', duration: '0:30', start: '11:45 AM', end: '12:15 PM' },
-      { name: 'Refine your product MVP', duration: '0:20', start: '12:15 PM', end: '12:35 PM' },
-      { name: 'Lunch!', duration: '0:30', start: '12:35 PM', end: '1:05 PM', highlight: true },
-      { name: 'Build!', duration: '1:00', start: '1:05 PM', end: '2:05 PM' },
-      { name: 'Break + Prep', duration: '0:15', start: '2:05 PM', end: '2:20 PM' },
+      { name: 'Introducing the workshop', duration: '0:10', start: '11:25 AM', end: '11:35 AM' },
+      { name: 'Analyze & Research', duration: '0:35', start: '11:35 AM', end: '12:10 PM' },
+      { name: 'Develop the MVP Product Idea', duration: '0:25', start: '12:10 PM', end: '12:35 PM' },
+      { name: 'Give & Get Feedback', duration: '0:35', start: '12:35 PM', end: '1:00 PM' },
+      { name: 'Lunch!', duration: '0:30', start: '1:00 PM', end: '1:30 PM', highlight: true },
+      { name: 'Refine your product MVP', duration: '0:15', start: '1:30 PM', end: '1:45 PM' },
+      { name: 'Build!', duration: '1:00', start: '1:45 PM', end: '2:45 PM' },
+      { name: 'Break + Prep', duration: '0:15', start: '2:45 PM', end: '3:00 PM' },
     ]
   },
-  { id: 3, name: 'Presentation + Retro', duration: '0:45', start: '2:20 PM', end: '3:05 PM' },
-  { id: 4, name: 'Closing', duration: '0:15', start: '3:05 PM', end: '3:20 PM' }
+  { id: 3, name: 'Presentation + Retro', duration: '0:45', start: '3:00 PM', end: '3:45 PM' },
+  { id: 4, name: 'Closing', duration: '0:15', start: '3:45 PM', end: '4:00 PM' }
 ];
 
 function BuilderView() {
