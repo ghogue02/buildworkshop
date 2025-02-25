@@ -185,7 +185,7 @@ function BuilderView() {
         setReviewLoading(false);
       }
     }
-  }, [sessionId]);
+  }, [sessionId, sectionOrder]);
 
   useEffect(() => {
     const storedName = localStorage.getItem('userName');
@@ -297,6 +297,26 @@ function BuilderView() {
     }
   };
 
+  // Define getNextSection before it's used in handleSectionSave
+  const getNextSection = useCallback((sectionName) => {
+    switch (sectionName) {
+      case 'Problem Definition':
+        return 'mvpplanner';
+      case 'MVP Planner':
+        return 'givegetfeedback';
+      case 'Give & Get Feedback':
+        return 'refineyourmvp';
+      case 'Refine Your MVP':
+        return 'startbuild';
+      case 'Start Build':
+        return 'presentationsretro';
+      case 'Presentations & Retro':
+        return 'review';
+      default:
+        return 'userinfo';
+    }
+  }, []);
+
   const handleSectionSave = useCallback(
     async (sectionName, sectionData) => {
       if (!sessionId) {
@@ -371,25 +391,6 @@ function BuilderView() {
     },
     [sessionId, getNextSection]
   );
-
-  const getNextSection = useCallback((sectionName) => {
-    switch (sectionName) {
-      case 'Problem Definition':
-        return 'mvpplanner';
-      case 'MVP Planner':
-        return 'givegetfeedback';
-      case 'Give & Get Feedback':
-        return 'refineyourmvp';
-      case 'Refine Your MVP':
-        return 'startbuild';
-      case 'Start Build':
-        return 'presentationsretro';
-      case 'Presentations & Retro':
-        return 'review';
-      default:
-        return 'userinfo';
-    }
-  }, []);
 
   const handleEdit = (sectionName) => {
     setCurrentSection(sectionName.toLowerCase().replace(/\s+/g, ''));
