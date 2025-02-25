@@ -274,6 +274,95 @@ class BuilderInputAnalysis {
 
     return recommendations;
   }
+
+  async generateBuilderSummary(builder) {
+    try {
+      const sections = builder.sections;
+      const summary = [];
+
+      // What they did
+      if (sections['Problem Definition'] && sections['MVP Planner']) {
+        summary.push(`The builder tackled ${sections['Problem Definition'].summary} and developed a solution involving ${sections['MVP Planner'].howItWorks}.`);
+      }
+
+      // What they learned
+      if (sections['Give & Get Feedback']) {
+        summary.push(`Through feedback, they learned ${sections['Give & Get Feedback'].capture}.`);
+      }
+
+      // What they tried
+      if (sections['Start Build']) {
+        summary.push(`They experimented with ${sections['Start Build'].whatBuilt} and utilized AI to ${sections['Start Build'].aiHelp}.`);
+      }
+
+      // What they took away
+      if (sections['Presentations & Retro']) {
+        summary.push(`Their key takeaway was ${sections['Presentations & Retro'].impact}.`);
+      }
+
+      // If any section is missing, provide a generic summary
+      while (summary.length < 4) {
+        summary.push("This section was not completed.");
+      }
+
+      return {
+        summary: summary.join(' '),
+        isAIGenerated: this.detectAIGenerated(sections)
+      };
+    } catch (error) {
+      console.error('Error generating builder summary:', error);
+      return {
+        summary: "Unable to generate summary due to an error.",
+        isAIGenerated: false
+      };
+    }
+  }
+
+  detectAIGenerated(sections) {
+    // Patterns that might indicate AI-generated content
+    const aiPatterns = [
+      /\b(furthermore|moreover|additionally|consequently)\b/gi,
+      /\b(optimal|utilize|leverage|facilitate)\b/gi,
+      /\b(in conclusion|to summarize|in summary)\b/gi,
+      /\b(implementation|methodology|framework)\b/gi
+    ];
+
+    let aiScore = 0;
+    let totalChecks = 0;
+
+    // Check each section's text content
+    Object.values(sections).forEach(section => {
+      if (!section) return;
+
+      const text = JSON.stringify(section).toLowerCase();
+      
+      // Check for AI patterns
+      aiPatterns.forEach(pattern => {
+        if (pattern.test(text)) {
+          aiScore++;
+        }
+        totalChecks++;
+      });
+
+      // Check for unusually perfect formatting
+      if (text.includes('...') || text.includes('etc.')) {
+        aiScore++;
+        totalChecks++;
+      }
+
+      // Check for overly formal language
+      if (/\b(shall|ought|whereby|thereof)\b/gi.test(text)) {
+        aiScore++;
+        totalChecks++;
+      }
+    });
+
+    // Calculate the AI probability score (0-1)
+    const aiProbability = totalChecks > 0 ? aiScore / totalChecks : 0;
+
+    // Return true if the AI probability is above 0.6 (60%)
+    return aiProbability > 0.6;
+  }
 }
 
 export const builderInputAnalysis = new BuilderInputAnalysis();

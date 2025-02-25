@@ -6,18 +6,33 @@ function BuilderDetails({ builder, onDeleteBuilder }) {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
+  const [aiSummary, setAiSummary] = useState('');
+  const [isAIGenerated, setIsAIGenerated] = useState(false);
 
   useEffect(() => {
     if (builder) {
       fetchAdminNotes();
+      generateSummary();
     }
   }, [builder]);
+
+  const generateSummary = async () => {
+    if (!builder) return;
+    
+    try {
+      const { summary, isAIGenerated } = await builderInputAnalysis.generateBuilderSummary(builder);
+      setAiSummary(summary);
+      setIsAIGenerated(isAIGenerated);
+    } catch (error) {
+      console.error('Error generating summary:', error);
+    }
+  };
 
   const fetchAdminNotes = async () => {
     try {
       const { data, error } = await supabase
         .from('admin_notes')
-        .select('notes, updated_at')
+        .select('notes, updated_at, ai_summary, ai_generated_flag')
         .eq('session_id', builder.sessionId.toString())
         .single();
 
@@ -28,9 +43,15 @@ function BuilderDetails({ builder, onDeleteBuilder }) {
       if (data) {
         setAdminNotes(data.notes || '');
         setLastUpdated(data.updated_at);
+        setAiSummary(data.ai_summary || '');
+        setIsAIGenerated(data.ai_generated_flag || false);
       } else {
         setAdminNotes('');
         setLastUpdated(null);
+        setAiSummary('');
+        setIsAIGenerated(false);
+        // Generate new summary since this is a new record
+        generateSummary();
       }
     } catch (error) {
       console.error('Error fetching admin notes:', error);
@@ -62,6 +83,8 @@ function BuilderDetails({ builder, onDeleteBuilder }) {
           .from('admin_notes')
           .update({
             notes: adminNotes,
+            ai_summary: aiSummary,
+            ai_generated_flag: isAIGenerated,
             updated_at: new Date().toISOString()
           })
           .eq('session_id', builder.sessionId.toString());
@@ -72,7 +95,9 @@ function BuilderDetails({ builder, onDeleteBuilder }) {
           .from('admin_notes')
           .insert({
             session_id: builder.sessionId.toString(),
-            notes: adminNotes
+            notes: adminNotes,
+            ai_summary: aiSummary,
+            ai_generated_flag: isAIGenerated
           });
         error = insertError;
       }
@@ -245,6 +270,43 @@ function BuilderDetails({ builder, onDeleteBuilder }) {
             </span>
           )}
         </div>
+
+        {/* AI Summary Section */}
+        <div style={{
+          backgroundColor: '#111',
+          padding: '15px',
+          borderRadius: '4px',
+          marginBottom: '15px'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '10px'
+          }}>
+            <h4 style={{ margin: 0, color: '#888' }}>AI-Generated Summary</h4>
+            {isAIGenerated && (
+              <div style={{
+                backgroundColor: '#ff440020',
+                color: '#ff4444',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontSize: '12px'
+              }}>
+                Potential AI-Generated Content
+              </div>
+            )}
+          </div>
+          <p style={{
+            margin: 0,
+            color: '#ccc',
+            fontSize: '14px',
+            lineHeight: '1.5'
+          }}>
+            {aiSummary || 'Generating summary...'}
+          </p>
+        </div>
+
         <textarea
           value={adminNotes}
           onChange={(e) => setAdminNotes(e.target.value)}
