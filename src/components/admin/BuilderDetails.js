@@ -423,17 +423,37 @@ function BuilderDetails({ builder, onDeleteBuilder }) {
                       <div>Loading video...</div>
                     ) : videoRecording ? (
                       <div>
-                        <video
-                          src={videoRecording.video_url}
-                          controls
-                          style={{
-                            width: '100%',
-                            maxHeight: '400px',
-                            backgroundColor: 'black',
-                            borderRadius: '4px',
-                            marginBottom: '15px'
-                          }}
-                        />
+                        {videoRecording.video_url && videoRecording.video_url.startsWith('data:') ? (
+                          // Handle data URL
+                          <video
+                            src={videoRecording.video_url}
+                            controls
+                            style={{
+                              width: '100%',
+                              maxHeight: '400px',
+                              backgroundColor: 'black',
+                              borderRadius: '4px',
+                              marginBottom: '15px'
+                            }}
+                          />
+                        ) : videoRecording.video_url ? (
+                          // Handle regular URL
+                          <video
+                            src={videoRecording.video_url}
+                            controls
+                            style={{
+                              width: '100%',
+                              maxHeight: '400px',
+                              backgroundColor: 'black',
+                              borderRadius: '4px',
+                              marginBottom: '15px'
+                            }}
+                          />
+                        ) : (
+                          <div style={{ color: '#666', fontStyle: 'italic', marginBottom: '15px' }}>
+                            Video URL is missing
+                          </div>
+                        )}
                         
                         {videoRecording.transcript && (
                           <div>

@@ -176,10 +176,10 @@ function VideoRecorder({ sessionId, onRecordingComplete }) {
       // Stop media tracks
       stopMediaTracks();
       
-      // Upload video to Supabase
-      setRecordingStatus('Uploading video...');
-      debugLog('Uploading video to Supabase');
-      const uploadedUrl = await videoService.uploadVideo(videoBlob, sessionId);
+      // Upload video (now returns a data URL)
+      setRecordingStatus('Processing video...');
+      debugLog('Processing video');
+      const dataUrl = await videoService.uploadVideo(videoBlob, sessionId);
       
       // Transcribe audio
       setRecordingStatus('Generating transcript...');
@@ -190,17 +190,29 @@ function VideoRecorder({ sessionId, onRecordingComplete }) {
       // Save recording data
       setRecordingStatus('Saving recording data...');
       debugLog('Saving recording data');
-      await videoService.saveVideoRecording(sessionId, uploadedUrl, transcriptText);
-      
-      setRecordingStatus('Recording complete!');
-      debugLog('Recording process complete');
-      
-      // Call the callback if provided
-      if (onRecordingComplete) {
-        onRecordingComplete({
-          videoUrl: uploadedUrl,
-          transcript: transcriptText
-        });
+      try {
+        await videoService.saveVideoRecording(sessionId, dataUrl, transcriptText);
+        setRecordingStatus('Recording complete!');
+        debugLog('Recording process complete');
+        
+        // Call the callback if provided
+        if (onRecordingComplete) {
+          onRecordingComplete({
+            videoUrl: dataUrl,
+            transcript: transcriptText
+          });
+        }
+      } catch (error) {
+        // If saving to database fails, still keep the recording in the UI
+        debugLog('Error saving to database, but keeping recording in UI', error);
+        setRecordingStatus('Recording saved locally (database save failed)');
+        
+        if (onRecordingComplete) {
+          onRecordingComplete({
+            videoUrl: videoObjectUrl, // Use the local object URL instead
+            transcript: transcriptText
+          });
+        }
       }
       
       // Clear status after 3 seconds

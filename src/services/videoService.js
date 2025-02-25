@@ -22,42 +22,25 @@ class VideoService {
   }
 
   /**
-   * Ensure the storage bucket exists
-   * @param {string} bucketName - The name of the bucket to check/create
+   * Ensure the video_recordings table exists
    * @returns {Promise<void>}
    */
-  async ensureBucketExists(bucketName) {
+  async ensureTableExists() {
     try {
-      // Check if bucket exists
-      const { data: buckets, error } = await supabase.storage.listBuckets();
+      this.debugLog('Checking if video_recordings table exists');
       
-      if (error) {
-        this.debugLog('Error listing buckets', error);
+      // Try to create the table if it doesn't exist
+      const { error } = await supabase.rpc('create_video_recordings_table');
+      
+      if (error && !error.message.includes('already exists')) {
+        this.debugLog('Error creating table', error);
         throw error;
       }
       
-      const bucketExists = buckets.some(bucket => bucket.name === bucketName);
-      
-      if (!bucketExists) {
-        this.debugLog(`Bucket "${bucketName}" does not exist, creating it...`);
-        
-        // Create the bucket
-        const { error: createError } = await supabase.storage.createBucket(bucketName, {
-          public: true // Make bucket public
-        });
-        
-        if (createError) {
-          this.debugLog('Error creating bucket', createError);
-          throw createError;
-        }
-        
-        this.debugLog(`Bucket "${bucketName}" created successfully`);
-      } else {
-        this.debugLog(`Bucket "${bucketName}" already exists`);
-      }
+      this.debugLog('Table check completed');
     } catch (error) {
-      this.debugLog('Error in ensureBucketExists', error);
-      throw error;
+      this.debugLog('Error in ensureTableExists', error);
+      console.error('Error ensuring table exists:', error);
     }
   }
 
@@ -75,41 +58,23 @@ class VideoService {
     }
 
     try {
-      // Ensure the bucket exists
-      const bucketName = 'user-content';
-      await this.ensureBucketExists(bucketName);
+      // Ensure the video_recordings table exists
+      await this.ensureTableExists();
       
-      // Generate a unique filename
-      const timestamp = new Date().getTime();
-      const filename = `${sessionId}_${timestamp}.webm`;
-      const filePath = `videos/${filename}`;
+      // Store video as a data URL instead of using Supabase Storage
+      const reader = new FileReader();
       
-      this.debugLog('Generated file path', filePath);
-
-      // Upload to Supabase storage
-      const { data, error } = await withRetry(async () => {
-        return await supabase.storage
-          .from(bucketName)
-          .upload(filePath, videoBlob, {
-            cacheControl: '3600',
-            upsert: true, // Changed to true to overwrite if exists
-            contentType: 'video/webm'
-          });
-      }, 3, 2000);
-
-      if (error) {
-        this.debugLog('Error uploading video', error);
-        throw error;
-      }
-
-      this.debugLog('Video uploaded successfully', data);
-
-      // Get the public URL
-      const { data: urlData } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(filePath);
-
-      return urlData.publicUrl;
+      // Convert blob to data URL
+      const dataUrl = await new Promise((resolve, reject) => {
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(videoBlob);
+      });
+      
+      this.debugLog('Converted video to data URL');
+      
+      // Save the data URL as the video URL
+      return dataUrl;
     } catch (error) {
       this.debugLog('Error in uploadVideo', error);
       console.error('Error uploading video:', error);
