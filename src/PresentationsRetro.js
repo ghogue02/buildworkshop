@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, withRetry } from './supabaseClient';
-import VideoRecorder from './components/VideoRecorder';
 
 function PresentationsRetro({ onSave, sessionId }) {
   const [problem, setProblem] = useState('');
@@ -338,16 +337,6 @@ function PresentationsRetro({ onSave, sessionId }) {
         <p style={{ marginTop: '10px', fontStyle: 'italic' }}>
           👉 Remember: Practice timing and focus on showing, not just telling!
         </p>
-
-        <div style={{ marginTop: '30px', borderTop: '1px solid #333', paddingTop: '20px' }}>
-          <h3>2-Minute Video Reflection</h3>
-          <VideoRecorder 
-            sessionId={sessionId} 
-            onRecordingComplete={(recordingData) => {
-              debugLog('Recording complete', recordingData);
-            }}
-          />
-        </div>
       </div>
     </div>
   );

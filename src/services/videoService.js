@@ -22,6 +22,46 @@ class VideoService {
   }
 
   /**
+   * Ensure the storage bucket exists
+   * @param {string} bucketName - The name of the bucket to check/create
+   * @returns {Promise<void>}
+   */
+  async ensureBucketExists(bucketName) {
+    try {
+      // Check if bucket exists
+      const { data: buckets, error } = await supabase.storage.listBuckets();
+      
+      if (error) {
+        this.debugLog('Error listing buckets', error);
+        throw error;
+      }
+      
+      const bucketExists = buckets.some(bucket => bucket.name === bucketName);
+      
+      if (!bucketExists) {
+        this.debugLog(`Bucket "${bucketName}" does not exist, creating it...`);
+        
+        // Create the bucket
+        const { error: createError } = await supabase.storage.createBucket(bucketName, {
+          public: true // Make bucket public
+        });
+        
+        if (createError) {
+          this.debugLog('Error creating bucket', createError);
+          throw createError;
+        }
+        
+        this.debugLog(`Bucket "${bucketName}" created successfully`);
+      } else {
+        this.debugLog(`Bucket "${bucketName}" already exists`);
+      }
+    } catch (error) {
+      this.debugLog('Error in ensureBucketExists', error);
+      throw error;
+    }
+  }
+
+  /**
    * Upload a video blob to Supabase storage
    * @param {Blob} videoBlob - The video blob to upload
    * @param {string} sessionId - The session ID
@@ -35,6 +75,10 @@ class VideoService {
     }
 
     try {
+      // Ensure the bucket exists
+      const bucketName = 'user-content';
+      await this.ensureBucketExists(bucketName);
+      
       // Generate a unique filename
       const timestamp = new Date().getTime();
       const filename = `${sessionId}_${timestamp}.webm`;
@@ -45,10 +89,10 @@ class VideoService {
       // Upload to Supabase storage
       const { data, error } = await withRetry(async () => {
         return await supabase.storage
-          .from('user-content')
+          .from(bucketName)
           .upload(filePath, videoBlob, {
             cacheControl: '3600',
-            upsert: false,
+            upsert: true, // Changed to true to overwrite if exists
             contentType: 'video/webm'
           });
       }, 3, 2000);
@@ -62,7 +106,7 @@ class VideoService {
 
       // Get the public URL
       const { data: urlData } = supabase.storage
-        .from('user-content')
+        .from(bucketName)
         .getPublicUrl(filePath);
 
       return urlData.publicUrl;

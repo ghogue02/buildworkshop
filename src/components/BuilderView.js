@@ -6,6 +6,7 @@ import GiveGetFeedback from '../GiveGetFeedback';
 import RefineYourMVP from '../RefineYourMVP';
 import StartBuild from '../StartBuild';
 import PresentationsRetro from '../PresentationsRetro';
+import VideoReflection from '../VideoReflection';
 
 const schedule = [
   { id: 0, name: 'Welcome & Intro: Pursuit & AI', duration: '0:10', start: '11:30 AM', end: '11:40 AM' },
@@ -45,7 +46,8 @@ function BuilderView() {
     'Give & Get Feedback',
     'Refine Your MVP',
     'Start Build',
-    'Presentations & Retro'
+    'Presentations & Retro',
+    'Video Reflection'
   ];
 
   const generateAISummary = (inputs) => {
@@ -334,6 +336,8 @@ function BuilderView() {
       case 'Start Build':
         return 'presentationsretro';
       case 'Presentations & Retro':
+        return 'videoreflection';
+      case 'Video Reflection':
         return 'review';
       default:
         return 'userinfo';
@@ -605,6 +609,20 @@ function BuilderView() {
               Presentations & Retro
             </button>
             <button
+              onClick={() => setCurrentSection('videoreflection')}
+              style={{
+                padding: '10px 20px',
+                borderRadius: '4px',
+                border: 'none',
+                backgroundColor: currentSection === 'videoreflection' ? 'white' : 'black',
+                color: currentSection === 'videoreflection' ? 'black' : 'white',
+                cursor: 'pointer',
+                fontWeight: currentSection === 'videoreflection' ? 'bold' : 'normal',
+              }}
+            >
+              Video Reflection
+            </button>
+            <button
               onClick={() => setCurrentSection('review')}
               style={{
                 padding: '10px 20px',
@@ -711,6 +729,10 @@ function BuilderView() {
 
       {currentSection === 'presentationsretro' && (
         <PresentationsRetro onSave={handleSectionSave} sessionId={sessionId} />
+      )}
+
+      {currentSection === 'videoreflection' && (
+        <VideoReflection sessionId={sessionId} />
       )}
 
       {currentSection === 'review' && (
