@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
+import { builderInputAnalysis } from '../../services/builderInputAnalysis';
 
 function BuilderDetails({ builder, onDeleteBuilder }) {
   const [adminNotes, setAdminNotes] = useState('');
