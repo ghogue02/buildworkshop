@@ -111,8 +111,15 @@ function StartBuild({ onSave, sessionId }) {
       return;
     }
     
-    if (!validate()) {
-      debugLog('Validation failed, not saving');
+    // Run validation but don't block saving
+    const isValid = validate();
+    if (!isValid) {
+      debugLog('Validation failed, but continuing with save to preserve partial progress');
+    }
+
+    // Only save if at least one field has content
+    if (!whatBuilt.trim() && !functionality.trim() && !futureAdditions.trim() && !aiHelp.trim()) {
+      debugLog('No content to save, all fields are empty');
       return;
     }
 
