@@ -20,6 +20,9 @@
 .env.production
 .env.production.local
 
+# GitHub Actions
+.github/workflows/
+
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
