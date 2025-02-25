@@ -1,0 +1,26 @@
+Testing deployment setup...
+
+Checking for gh-pages package...
+✅ gh-pages package is installed correctly.
+
+Checking for .env.production file...
+✅ .env.production file exists.
+✅ REACT_APP_SUPABASE_URL is defined in .env.production
+✅ REACT_APP_SUPABASE_ANON_KEY is defined in .env.production
+
+Checking for deploy.js script...
+✅ deploy.js script exists.
+
+Checking for web-speech-api-update.js script...
+✅ web-speech-api-update.js script exists.
+
+Checking for env-config.js...
+✅ env-config.js exists.
+
+Checking if .github/workflows/ is in .gitignore...
+✅ .github/workflows/ is in .gitignore
+
+Deployment setup test complete!
+
+If all checks passed, you should be able to deploy with: npm run deploy
+If any checks failed, please fix the issues before deploying.
