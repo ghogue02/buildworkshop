@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '../supabaseClient';
+import { supabase, withRetry } from '../supabaseClient';
 import ProblemDefinition from '../ProblemDefinition';
 import MVPPlanner from '../MVPPlanner';
 import GiveGetFeedback from '../GiveGetFeedback';
@@ -162,12 +162,17 @@ function BuilderView() {
     setReviewLoading(true);
     try {
       console.log('Fetching user inputs for session:', sessionId);
-      const { data, error } = await supabase
-        .from('user_inputs')
-        .select('*')
-        .eq('session_id', sessionId);
+      
+      // Use the withRetry helper to handle connection issues
+      const { data, error } = await withRetry(async () => {
+        return await supabase
+          .from('user_inputs')
+          .select('*')
+          .eq('session_id', sessionId);
+      }, 3, 2000); // Retry up to 3 times with 2 second delay between retries
 
       if (error) {
+        console.error('Supabase error:', error);
         throw error;
       }
 
@@ -177,9 +182,15 @@ function BuilderView() {
           return sectionOrder.indexOf(a.section_name) - sectionOrder.indexOf(b.section_name);
         });
         setUserInputs(sortedData);
+      } else {
+        console.log('No data returned from Supabase or component unmounted');
       }
     } catch (error) {
-      console.error('Error fetching data:', error.message);
+      console.error('Error fetching data:', error);
+      // Don't show alert to user, just log the error
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.error('Network error: Could not connect to Supabase. Please check your internet connection.');
+      }
     } finally {
       if (isMounted.current) {
         setReviewLoading(false);
@@ -238,13 +249,15 @@ function BuilderView() {
         email
       });
 
-      // First check if a record already exists
-      const { data: existingData, error: fetchError } = await supabase
-        .from('user_inputs')
-        .select('id')
-        .eq('session_id', sessionId)
-        .eq('section_name', 'User Info')
-        .maybeSingle();
+      // Use withRetry for checking if a record exists
+      const { data: existingData, error: fetchError } = await withRetry(async () => {
+        return await supabase
+          .from('user_inputs')
+          .select('id')
+          .eq('session_id', sessionId)
+          .eq('section_name', 'User Info')
+          .maybeSingle();
+      }, 3, 2000);
 
       if (fetchError) {
         console.error('Error checking for existing user info:', fetchError);
@@ -254,27 +267,31 @@ function BuilderView() {
       let error;
       if (existingData) {
         console.log('Updating existing user info record');
-        // Update existing record
-        const { error: updateError } = await supabase
-          .from('user_inputs')
-          .update({
-            input_data: { name, email },
-            updated_at: new Date().toISOString()
-          })
-          .eq('session_id', sessionId)
-          .eq('section_name', 'User Info');
+        // Update existing record with withRetry
+        const { error: updateError } = await withRetry(async () => {
+          return await supabase
+            .from('user_inputs')
+            .update({
+              input_data: { name, email },
+              updated_at: new Date().toISOString()
+            })
+            .eq('session_id', sessionId)
+            .eq('section_name', 'User Info');
+        }, 3, 2000);
         
         error = updateError;
       } else {
         console.log('Creating new user info record');
-        // Insert new record
-        const { error: insertError } = await supabase
-          .from('user_inputs')
-          .insert({
-            session_id: sessionId,
-            section_name: 'User Info',
-            input_data: { name, email }
-          });
+        // Insert new record with withRetry
+        const { error: insertError } = await withRetry(async () => {
+          return await supabase
+            .from('user_inputs')
+            .insert({
+              session_id: sessionId,
+              section_name: 'User Info',
+              input_data: { name, email }
+            });
+        }, 3, 2000);
         
         error = insertError;
       }
@@ -288,8 +305,14 @@ function BuilderView() {
       alert('Your information has been saved!');
       setCurrentSection('problemdefinition');
     } catch (error) {
-      console.error('Error saving data:', error.message);
-      alert('Error saving data: ' + error.message);
+      console.error('Error saving data:', error);
+      
+      // Provide more specific error messages
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        alert('Network error: Could not connect to the database. Please check your internet connection and try again.');
+      } else {
+        alert('Error saving data: ' + (error.message || 'Unknown error'));
+      }
     } finally {
       if (isMounted.current) {
         setSaving(false);
@@ -332,13 +355,15 @@ function BuilderView() {
           data: sectionData
         });
 
-        // First check if a record already exists
-        const { data: existingData, error: fetchError } = await supabase
-          .from('user_inputs')
-          .select('id')
-          .eq('session_id', sessionId)
-          .eq('section_name', sectionName)
-          .maybeSingle();
+        // First check if a record already exists with withRetry
+        const { data: existingData, error: fetchError } = await withRetry(async () => {
+          return await supabase
+            .from('user_inputs')
+            .select('id')
+            .eq('session_id', sessionId)
+            .eq('section_name', sectionName)
+            .maybeSingle();
+        }, 3, 2000);
 
         if (fetchError) {
           console.error('Error checking for existing data:', fetchError);
@@ -348,27 +373,31 @@ function BuilderView() {
         let error;
         if (existingData) {
           console.log(`Updating existing record for ${sectionName}`);
-          // Update existing record
-          const { error: updateError } = await supabase
-            .from('user_inputs')
-            .update({
-              input_data: sectionData,
-              updated_at: new Date().toISOString()
-            })
-            .eq('session_id', sessionId)
-            .eq('section_name', sectionName);
+          // Update existing record with withRetry
+          const { error: updateError } = await withRetry(async () => {
+            return await supabase
+              .from('user_inputs')
+              .update({
+                input_data: sectionData,
+                updated_at: new Date().toISOString()
+              })
+              .eq('session_id', sessionId)
+              .eq('section_name', sectionName);
+          }, 3, 2000);
           
           error = updateError;
         } else {
           console.log(`Creating new record for ${sectionName}`);
-          // Insert new record
-          const { error: insertError } = await supabase
-            .from('user_inputs')
-            .insert({
-              session_id: sessionId,
-              section_name: sectionName,
-              input_data: sectionData
-            });
+          // Insert new record with withRetry
+          const { error: insertError } = await withRetry(async () => {
+            return await supabase
+              .from('user_inputs')
+              .insert({
+                session_id: sessionId,
+                section_name: sectionName,
+                input_data: sectionData
+              });
+          }, 3, 2000);
           
           error = insertError;
         }
@@ -381,8 +410,14 @@ function BuilderView() {
         console.log('Section data saved successfully');
         setCurrentSection(getNextSection(sectionName));
       } catch (error) {
-        console.error('Error saving data:', error.message);
-        alert('Error saving data: ' + error.message);
+        console.error('Error saving data:', error);
+        
+        // Provide more specific error messages
+        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+          alert('Network error: Could not connect to the database. Please check your internet connection and try again.');
+        } else {
+          alert('Error saving data: ' + (error.message || 'Unknown error'));
+        }
       } finally {
         if (isMounted.current) {
           setSaving(false);
