@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { supabase } from './supabaseClient';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { supabase, withRetry } from './supabaseClient';
 
 function RefineYourMVP({ onSave, sessionId }) {
   const [feedbackIntegration, setFeedbackIntegration] = useState('');
@@ -8,84 +8,253 @@ function RefineYourMVP({ onSave, sessionId }) {
   const [keyImprovements, setKeyImprovements] = useState('');
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(true);
+  const [saveStatus, setSaveStatus] = useState(null);
+  const isMounted = useRef(true);
+  const lastSaveTime = useRef(null);
+  const saveAttempts = useRef(0);
+
+  // Debug logging function
+  const debugLog = (message, data = null) => {
+    const timestamp = new Date().toISOString();
+    const logMessage = `[RefineYourMVP Debug ${timestamp}] ${message}`;
+    
+    if (data) {
+      console.log(logMessage, data);
+    } else {
+      console.log(logMessage);
+    }
+  };
 
   // Load existing data
   useEffect(() => {
     const loadExistingData = async () => {
-      if (!sessionId) return;
+      if (!sessionId) {
+        debugLog('No sessionId provided, skipping data load');
+        return;
+      }
 
+      debugLog(`Loading existing data for session ${sessionId}`);
       try {
-        const { data, error } = await supabase
-          .from('user_inputs')
-          .select('input_data')
-          .eq('session_id', sessionId)
-          .eq('section_name', 'Refine Your MVP')
-          .maybeSingle();
+        // Use withRetry for better reliability
+        const { data, error } = await withRetry(async () => {
+          debugLog('Fetching Refine Your MVP data from Supabase');
+          return await supabase
+            .from('user_inputs')
+            .select('input_data')
+            .eq('session_id', sessionId)
+            .eq('section_name', 'Refine Your MVP')
+            .maybeSingle();
+        }, 3, 2000);
 
-        if (error && error.code !== 'PGRST116') {
-          throw error;
+        if (error) {
+          if (error.code !== 'PGRST116') {
+            debugLog(`Error fetching data: ${error.code}`, error);
+            throw error;
+          } else {
+            debugLog('No existing data found (PGRST116)');
+          }
         }
 
         if (data?.input_data) {
+          debugLog('Data loaded successfully', data.input_data);
           setFeedbackIntegration(data.input_data.feedbackIntegration || '');
           setAiEnhancement(data.input_data.aiEnhancement || '');
           setProductRefinement(data.input_data.productRefinement || '');
           setKeyImprovements(data.input_data.keyImprovements || '');
+        } else {
+          debugLog('No data or empty data returned');
         }
       } catch (error) {
-        console.error('Error loading data:', error.message);
+        debugLog('Error loading data:', error);
+        console.error('Error loading data:', error);
       } finally {
-        setLoading(false);
+        if (isMounted.current) {
+          setLoading(false);
+          debugLog('Loading state set to false');
+        }
       }
     };
 
     loadExistingData();
+    
+    // Cleanup function
+    return () => {
+      isMounted.current = false;
+      debugLog('Component unmounting, isMounted set to false');
+    };
   }, [sessionId]);
 
   const validate = () => {
+    debugLog('Validating form data');
     let newErrors = {};
     if (!feedbackIntegration.trim()) newErrors.feedbackIntegration = 'Feedback Integration is required';
     if (!aiEnhancement.trim()) newErrors.aiEnhancement = 'AI Enhancement is required';
     if (!productRefinement.trim()) newErrors.productRefinement = 'Product Refinement is required';
     if (!keyImprovements.trim()) newErrors.keyImprovements = 'Key Improvements is required';
+    
+    const isValid = Object.keys(newErrors).length === 0;
+    debugLog(`Validation result: ${isValid ? 'Valid' : 'Invalid'}`, newErrors);
+    
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return isValid;
   };
 
   const saveData = useCallback(async () => {
-    if (!sessionId || !validate()) return;
-
-    try {
-      const { error } = await supabase
-        .from('user_inputs')
-        .upsert({
-          session_id: sessionId,
-          section_name: 'Refine Your MVP',
-          input_data: {
-            feedbackIntegration,
-            aiEnhancement,
-            productRefinement,
-            keyImprovements
-          }
-        }, {
-          onConflict: 'session_id,section_name'
-        });
-
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error saving data:', error.message);
+    const currentTime = new Date();
+    saveAttempts.current += 1;
+    const attemptNumber = saveAttempts.current;
+    
+    debugLog(`Save attempt #${attemptNumber} started`);
+    
+    if (!sessionId) {
+      debugLog('No sessionId available, cannot save');
+      return;
     }
-  }, [sessionId, feedbackIntegration, aiEnhancement, productRefinement, keyImprovements]);
+    
+    // Run validation but don't block saving
+    const isValid = validate();
+    if (!isValid) {
+      debugLog('Validation failed, but continuing with save to preserve partial progress');
+    }
+
+    // Only save if at least one field has content
+    if (!feedbackIntegration.trim() && !aiEnhancement.trim() && 
+        !productRefinement.trim() && !keyImprovements.trim()) {
+      debugLog('No content to save, all fields are empty');
+      return;
+    }
+
+    // Track time since last save
+    const timeSinceLastSave = lastSaveTime.current
+      ? currentTime - lastSaveTime.current
+      : null;
+    
+    debugLog(`Time since last save: ${timeSinceLastSave ? `${timeSinceLastSave}ms` : 'First save'}`);
+    
+    setSaveStatus('Saving...');
+    try {
+      debugLog('Preparing data for save', {
+        session_id: sessionId,
+        section_name: 'Refine Your MVP',
+        data: { feedbackIntegration, aiEnhancement, productRefinement, keyImprovements }
+      });
+
+      // First check if a record already exists
+      debugLog('Checking if record exists');
+      const { data: existingData, error: fetchError } = await withRetry(async () => {
+        return await supabase
+          .from('user_inputs')
+          .select('id')
+          .eq('session_id', sessionId)
+          .eq('section_name', 'Refine Your MVP')
+          .maybeSingle();
+      }, 3, 2000);
+
+      if (fetchError) {
+        debugLog('Error checking for existing data:', fetchError);
+        throw fetchError;
+      }
+
+      let error;
+      if (existingData) {
+        debugLog(`Updating existing record ID: ${existingData.id}`);
+        // Update existing record
+        const { error: updateError } = await withRetry(async () => {
+          return await supabase
+            .from('user_inputs')
+            .update({
+              input_data: {
+                feedbackIntegration,
+                aiEnhancement,
+                productRefinement,
+                keyImprovements
+              },
+              updated_at: new Date().toISOString()
+            })
+            .eq('session_id', sessionId)
+            .eq('section_name', 'Refine Your MVP');
+        }, 3, 2000);
+        
+        error = updateError;
+      } else {
+        debugLog('Creating new record');
+        // Insert new record
+        const { error: insertError } = await withRetry(async () => {
+          return await supabase
+            .from('user_inputs')
+            .insert({
+              session_id: sessionId,
+              section_name: 'Refine Your MVP',
+              input_data: {
+                feedbackIntegration,
+                aiEnhancement,
+                productRefinement,
+                keyImprovements
+              }
+            });
+        }, 3, 2000);
+        
+        error = insertError;
+      }
+
+      if (error) {
+        debugLog('Database operation failed:', error);
+        throw error;
+      }
+
+      lastSaveTime.current = new Date();
+      const saveTime = lastSaveTime.current - currentTime;
+      debugLog(`Save successful, took ${saveTime}ms`);
+      setSaveStatus('Saved');
+      
+      // Clear save status after 3 seconds
+      setTimeout(() => {
+        if (isMounted.current) {
+          setSaveStatus(null);
+        }
+      }, 3000);
+      
+      // Call onSave if provided
+      if (onSave) {
+        debugLog('Calling onSave callback');
+        onSave('Refine Your MVP', {
+          feedbackIntegration,
+          aiEnhancement,
+          productRefinement,
+          keyImprovements
+        });
+      }
+    } catch (error) {
+      debugLog('Error saving data:', error);
+      console.error('Error saving data:', error);
+      setSaveStatus(`Error: ${error.message || 'Failed to save'}`);
+      
+      // Clear error status after 5 seconds
+      setTimeout(() => {
+        if (isMounted.current) {
+          setSaveStatus(null);
+        }
+      }, 5000);
+    }
+  }, [sessionId, feedbackIntegration, aiEnhancement, productRefinement, keyImprovements, onSave]);
 
   // Debounce save after 1 second of no changes
   useEffect(() => {
-    if (loading) return; // Don't save while initial data is loading
+    if (loading) {
+      debugLog('Skip auto-save: Component is still loading');
+      return; // Don't save while initial data is loading
+    }
     
+    debugLog('Auto-save timer started (1000ms delay)');
     const timer = setTimeout(() => {
+      debugLog('Auto-save timer triggered, calling saveData()');
       saveData();
     }, 1000);
 
-    return () => clearTimeout(timer);
+    return () => {
+      debugLog('Auto-save timer cleared due to dependency change');
+      clearTimeout(timer);
+    };
   }, [feedbackIntegration, aiEnhancement, productRefinement, keyImprovements, saveData, loading]);
 
   if (loading) {
@@ -147,7 +316,20 @@ function RefineYourMVP({ onSave, sessionId }) {
         border: '1px solid white', 
         borderRadius: '8px' 
       }}>
-        <h2>Refine Your MVP</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+          <h2>Refine Your MVP</h2>
+          {saveStatus && (
+            <div style={{
+              padding: '5px 10px',
+              borderRadius: '4px',
+              backgroundColor: saveStatus.includes('Error') ? '#ff4444' : '#4CAF50',
+              color: 'white',
+              fontSize: '14px'
+            }}>
+              {saveStatus}
+            </div>
+          )}
+        </div>
         <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
           {errors.feedbackIntegration && <p style={{ color: 'red' }}>{errors.feedbackIntegration}</p>}
           <label htmlFor="feedbackIntegration">Feedback Integration</label>
