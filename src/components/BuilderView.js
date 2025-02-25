@@ -223,6 +223,7 @@ function BuilderView() {
     event.preventDefault();
 
     if (!name || !email || !sessionId) {
+      console.error('Cannot save user info: Missing required fields');
       return;
     }
 
@@ -237,17 +238,49 @@ function BuilderView() {
         email
       });
 
-      const { error } = await supabase
+      // First check if a record already exists
+      const { data: existingData, error: fetchError } = await supabase
         .from('user_inputs')
-        .upsert({
-          session_id: sessionId,
-          section_name: 'User Info',
-          input_data: { name, email }
-        }, {
-          onConflict: 'session_id,section_name'
-        });
+        .select('id')
+        .eq('session_id', sessionId)
+        .eq('section_name', 'User Info')
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error('Error checking for existing user info:', fetchError);
+        throw fetchError;
+      }
+
+      let error;
+      if (existingData) {
+        console.log('Updating existing user info record');
+        // Update existing record
+        const { error: updateError } = await supabase
+          .from('user_inputs')
+          .update({
+            input_data: { name, email },
+            updated_at: new Date().toISOString()
+          })
+          .eq('session_id', sessionId)
+          .eq('section_name', 'User Info');
+        
+        error = updateError;
+      } else {
+        console.log('Creating new user info record');
+        // Insert new record
+        const { error: insertError } = await supabase
+          .from('user_inputs')
+          .insert({
+            session_id: sessionId,
+            section_name: 'User Info',
+            input_data: { name, email }
+          });
+        
+        error = insertError;
+      }
 
       if (error) {
+        console.error('Database operation failed:', error);
         throw error;
       }
 
@@ -266,7 +299,10 @@ function BuilderView() {
 
   const handleSectionSave = useCallback(
     async (sectionName, sectionData) => {
-      if (!sessionId) return;
+      if (!sessionId) {
+        console.error('Cannot save: No session ID available');
+        return;
+      }
 
       setSaving(true);
       try {
@@ -276,17 +312,49 @@ function BuilderView() {
           data: sectionData
         });
 
-        const { error } = await supabase
+        // First check if a record already exists
+        const { data: existingData, error: fetchError } = await supabase
           .from('user_inputs')
-          .upsert({
-            session_id: sessionId,
-            section_name: sectionName,
-            input_data: sectionData
-          }, {
-            onConflict: 'session_id,section_name'
-          });
+          .select('id')
+          .eq('session_id', sessionId)
+          .eq('section_name', sectionName)
+          .maybeSingle();
+
+        if (fetchError) {
+          console.error('Error checking for existing data:', fetchError);
+          throw fetchError;
+        }
+
+        let error;
+        if (existingData) {
+          console.log(`Updating existing record for ${sectionName}`);
+          // Update existing record
+          const { error: updateError } = await supabase
+            .from('user_inputs')
+            .update({
+              input_data: sectionData,
+              updated_at: new Date().toISOString()
+            })
+            .eq('session_id', sessionId)
+            .eq('section_name', sectionName);
+          
+          error = updateError;
+        } else {
+          console.log(`Creating new record for ${sectionName}`);
+          // Insert new record
+          const { error: insertError } = await supabase
+            .from('user_inputs')
+            .insert({
+              session_id: sessionId,
+              section_name: sectionName,
+              input_data: sectionData
+            });
+          
+          error = insertError;
+        }
 
         if (error) {
+          console.error('Database operation failed:', error);
           throw error;
         }
 
@@ -301,7 +369,7 @@ function BuilderView() {
         }
       }
     },
-    [sessionId]
+    [sessionId, getNextSection]
   );
 
   const getNextSection = useCallback((sectionName) => {
