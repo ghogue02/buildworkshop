@@ -1,8 +1,8 @@
 -- Drop existing table if it exists
-DROP TABLE IF EXISTS public.User_Inputs;
+DROP TABLE IF EXISTS public.user_inputs;
 
--- Create User_Inputs table
-CREATE TABLE public.User_Inputs (
+-- Create user_inputs table
+CREATE TABLE public.user_inputs (
     id SERIAL PRIMARY KEY,
     session_id UUID NOT NULL,
     section_name TEXT NOT NULL,
@@ -13,17 +13,17 @@ CREATE TABLE public.User_Inputs (
 );
 
 -- Enable Row Level Security
-ALTER TABLE public.User_Inputs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_inputs ENABLE ROW LEVEL SECURITY;
 
 -- Create policy to allow all operations
-CREATE POLICY "Allow all operations" ON public.User_Inputs
+CREATE POLICY "Allow all operations" ON public.user_inputs
     FOR ALL
     TO anon
     USING (true)
     WITH CHECK (true);
 
 -- Grant access to public
-GRANT ALL ON public.User_Inputs TO anon;
-GRANT ALL ON public.User_Inputs TO authenticated;
-GRANT ALL ON SEQUENCE public.User_Inputs_id_seq TO anon;
-GRANT ALL ON SEQUENCE public.User_Inputs_id_seq TO authenticated;
+GRANT ALL ON public.user_inputs TO anon;
+GRANT ALL ON public.user_inputs TO authenticated;
+GRANT ALL ON SEQUENCE public.user_inputs_id_seq TO anon;
+GRANT ALL ON SEQUENCE public.user_inputs_id_seq TO authenticated;

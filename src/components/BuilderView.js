@@ -6,7 +6,7 @@ import GiveGetFeedback from '../GiveGetFeedback';
 import RefineYourMVP from '../RefineYourMVP';
 import StartBuild from '../StartBuild';
 import PresentationsRetro from '../PresentationsRetro';
-import VideoReflection from '../VideoReflection';
+// Note: Removed imports for AI Interview, Video Reflection, and Review components
 
 const schedule = [
   { id: 0, name: 'Welcome & Intro: Pursuit & AI', duration: '0:10', start: '11:30 AM', end: '11:40 AM' },
@@ -37,6 +37,7 @@ function BuilderView() {
   const [userInputs, setUserInputs] = useState([]);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [connectionError, setConnectionError] = useState(null); // Added for connection error tracking
   const isMounted = useRef(true);
 
   const sectionOrder = [
@@ -46,8 +47,7 @@ function BuilderView() {
     'Give & Get Feedback',
     'Refine Your MVP',
     'Start Build',
-    'Presentations & Retro',
-    'Video Reflection'
+    'Presentations & Retro'
   ];
 
   const generateAISummary = (inputs) => {
@@ -159,9 +159,13 @@ function BuilderView() {
   };
 
   const fetchUserInputs = useCallback(async () => {
-    if (!sessionId) return;
+    if (!sessionId) {
+      console.log('No sessionId available, cannot fetch user inputs');
+      return;
+    }
 
     setReviewLoading(true);
+    setConnectionError(null); // Reset connection error
     try {
       console.log('Fetching user inputs for session:', sessionId);
       
@@ -175,6 +179,7 @@ function BuilderView() {
 
       if (error) {
         console.error('Supabase error:', error);
+        setConnectionError(`Database error: ${error.message}`);
         throw error;
       }
 
@@ -191,7 +196,9 @@ function BuilderView() {
       console.error('Error fetching data:', error);
       // Don't show alert to user, just log the error
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        console.error('Network error: Could not connect to Supabase. Please check your internet connection.');
+        const errorMsg = 'Network error: Could not connect to Supabase. Please check your internet connection.';
+        console.error(errorMsg);
+        setConnectionError(errorMsg);
       }
     } finally {
       if (isMounted.current) {
@@ -207,16 +214,35 @@ function BuilderView() {
     if (storedEmail) setEmail(storedEmail);
 
     if (!sessionId) {
-      const newSessionId = crypto.randomUUID();
-      console.log('Generated new session ID:', newSessionId);
-      setSessionId(newSessionId);
-      localStorage.setItem('sessionId', newSessionId);
+      console.log('No session ID found, generating new one');
+      try {
+        const newSessionId = crypto.randomUUID();
+        console.log('Generated new session ID:', newSessionId);
+        setSessionId(newSessionId);
+        localStorage.setItem('sessionId', newSessionId);
+      } catch (error) {
+        console.error('Error generating session ID:', error);
+        // Fallback to timestamp-based ID if randomUUID fails
+        const fallbackId = `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        console.log('Using fallback session ID:', fallbackId);
+        setSessionId(fallbackId);
+        localStorage.setItem('sessionId', fallbackId);
+      }
+    } else {
+      console.log('Using existing session ID:', sessionId);
+    }
+
+    // Set a default section if none is selected
+    if (currentSection === 'userinfo' && storedName && storedEmail) {
+      console.log('User info already exists, defaulting to problem definition section');
+      setCurrentSection('problemdefinition');
     }
 
     return () => {
       isMounted.current = false;
+      console.log('BuilderView component unmounting');
     };
-  }, [sessionId]);
+  }, [sessionId, currentSection]);
 
   useEffect(() => {
     if (currentSection === 'review' && sessionId) {
@@ -244,6 +270,7 @@ function BuilderView() {
     localStorage.setItem('userEmail', email);
 
     setSaving(true);
+    setConnectionError(null); // Reset connection error
     try {
       console.log('Saving user info:', {
         session_id: sessionId,
@@ -263,6 +290,7 @@ function BuilderView() {
 
       if (fetchError) {
         console.error('Error checking for existing user info:', fetchError);
+        setConnectionError(`Database error: ${fetchError.message}`);
         throw fetchError;
       }
 
@@ -300,6 +328,7 @@ function BuilderView() {
 
       if (error) {
         console.error('Database operation failed:', error);
+        setConnectionError(`Database operation failed: ${error.message}`);
         throw error;
       }
 
@@ -311,9 +340,13 @@ function BuilderView() {
       
       // Provide more specific error messages
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        alert('Network error: Could not connect to the database. Please check your internet connection and try again.');
+        const errorMsg = 'Network error: Could not connect to the database. Please check your internet connection and try again.';
+        setConnectionError(errorMsg);
+        alert(errorMsg);
       } else {
-        alert('Error saving data: ' + (error.message || 'Unknown error'));
+        const errorMsg = 'Error saving data: ' + (error.message || 'Unknown error');
+        setConnectionError(errorMsg);
+        alert(errorMsg);
       }
     } finally {
       if (isMounted.current) {
@@ -336,8 +369,6 @@ function BuilderView() {
       case 'Start Build':
         return 'presentationsretro';
       case 'Presentations & Retro':
-        return 'videoreflection';
-      case 'Video Reflection':
         return 'review';
       default:
         return 'userinfo';
@@ -352,6 +383,7 @@ function BuilderView() {
       }
 
       setSaving(true);
+      setConnectionError(null); // Reset connection error
       try {
         console.log('Saving section data:', {
           session_id: sessionId,
@@ -371,6 +403,7 @@ function BuilderView() {
 
         if (fetchError) {
           console.error('Error checking for existing data:', fetchError);
+          setConnectionError(`Database error: ${fetchError.message}`);
           throw fetchError;
         }
 
@@ -408,6 +441,7 @@ function BuilderView() {
 
         if (error) {
           console.error('Database operation failed:', error);
+          setConnectionError(`Database operation failed: ${error.message}`);
           throw error;
         }
 
@@ -418,9 +452,13 @@ function BuilderView() {
         
         // Provide more specific error messages
         if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-          alert('Network error: Could not connect to the database. Please check your internet connection and try again.');
+          const errorMsg = 'Network error: Could not connect to the database. Please check your internet connection and try again.';
+          setConnectionError(errorMsg);
+          alert(errorMsg);
         } else {
-          alert('Error saving data: ' + (error.message || 'Unknown error'));
+          const errorMsg = 'Error saving data: ' + (error.message || 'Unknown error');
+          setConnectionError(errorMsg);
+          alert(errorMsg);
         }
       } finally {
         if (isMounted.current) {
@@ -433,6 +471,24 @@ function BuilderView() {
 
   const handleEdit = (sectionName) => {
     setCurrentSection(sectionName.toLowerCase().replace(/\s+/g, ''));
+  };
+
+  // Display connection error if present
+  const renderConnectionError = () => {
+    if (!connectionError) return null;
+    
+    return (
+      <div style={{
+        backgroundColor: '#ff4444',
+        color: 'white',
+        padding: '10px',
+        borderRadius: '4px',
+        marginBottom: '20px',
+        width: '100%'
+      }}>
+        <strong>Connection Error:</strong> {connectionError}
+      </div>
+    );
   };
 
   const renderSchedule = () => (
@@ -608,38 +664,12 @@ function BuilderView() {
             >
               Presentations & Retro
             </button>
-            <button
-              onClick={() => setCurrentSection('videoreflection')}
-              style={{
-                padding: '10px 20px',
-                borderRadius: '4px',
-                border: 'none',
-                backgroundColor: currentSection === 'videoreflection' ? 'white' : 'black',
-                color: currentSection === 'videoreflection' ? 'black' : 'white',
-                cursor: 'pointer',
-                fontWeight: currentSection === 'videoreflection' ? 'bold' : 'normal',
-              }}
-            >
-              Video Reflection
-            </button>
-            <button
-              onClick={() => setCurrentSection('review')}
-              style={{
-                padding: '10px 20px',
-                borderRadius: '4px',
-                border: 'none',
-                backgroundColor: currentSection === 'review' ? 'white' : 'black',
-                color: currentSection === 'review' ? 'black' : 'white',
-                cursor: 'pointer',
-                fontWeight: currentSection === 'review' ? 'bold' : 'normal',
-              }}
-            >
-              Review
-            </button>
+            {/* AI Interview, Video Reflection and Review sections removed */}
           </>
         )}
       </div>
 
+      {renderConnectionError()}
       {saving && <p>Saving...</p>}
 
       {currentSection === 'userinfo' && (
@@ -707,69 +737,56 @@ function BuilderView() {
         </div>
       )}
 
-      {currentSection === 'problemdefinition' && (
-        <ProblemDefinition onSave={handleSectionSave} sessionId={sessionId} />
-      )}
+      {/* Always render components but with display:none when not active */}
+      <div style={{ display: currentSection === 'problemdefinition' ? 'block' : 'none', width: '100%' }}>
+        <ProblemDefinition
+          onSave={handleSectionSave}
+          sessionId={sessionId}
+          key={`problem-${sessionId}`}
+        />
+      </div>
 
-      {currentSection === 'mvpplanner' && (
-        <MVPPlanner onSave={handleSectionSave} sessionId={sessionId} />
-      )}
+      <div style={{ display: currentSection === 'mvpplanner' ? 'block' : 'none', width: '100%' }}>
+        <MVPPlanner
+          onSave={handleSectionSave}
+          sessionId={sessionId}
+          key={`mvp-${sessionId}`}
+        />
+      </div>
 
-      {currentSection === 'givegetfeedback' && (
-        <GiveGetFeedback onSave={handleSectionSave} sessionId={sessionId} />
-      )}
+      <div style={{ display: currentSection === 'givegetfeedback' ? 'block' : 'none', width: '100%' }}>
+        <GiveGetFeedback
+          onSave={handleSectionSave}
+          sessionId={sessionId}
+          key={`feedback-${sessionId}`}
+        />
+      </div>
 
-      {currentSection === 'refineyourmvp' && (
-        <RefineYourMVP onSave={handleSectionSave} sessionId={sessionId} />
-      )}
+      <div style={{ display: currentSection === 'refineyourmvp' ? 'block' : 'none', width: '100%' }}>
+        <RefineYourMVP
+          onSave={handleSectionSave}
+          sessionId={sessionId}
+          key={`refine-${sessionId}`}
+        />
+      </div>
 
-      {currentSection === 'startbuild' && (
-        <StartBuild onSave={handleSectionSave} sessionId={sessionId} />
-      )}
+      <div style={{ display: currentSection === 'startbuild' ? 'block' : 'none', width: '100%' }}>
+        <StartBuild
+          onSave={handleSectionSave}
+          sessionId={sessionId}
+          key={`build-${sessionId}`}
+        />
+      </div>
 
-      {currentSection === 'presentationsretro' && (
-        <PresentationsRetro onSave={handleSectionSave} sessionId={sessionId} />
-      )}
+      <div style={{ display: currentSection === 'presentationsretro' ? 'block' : 'none', width: '100%' }}>
+        <PresentationsRetro
+          onSave={handleSectionSave}
+          sessionId={sessionId}
+          key={`retro-${sessionId}`}
+        />
+      </div>
 
-      {currentSection === 'videoreflection' && (
-        <VideoReflection sessionId={sessionId} />
-      )}
-
-      {currentSection === 'review' && (
-        <div style={{ width: '80%', maxWidth: '800px' }}>
-          <h2>Review Your Answers</h2>
-          {reviewLoading ? (
-            <p>Loading review data...</p>
-          ) : (
-            <>
-              {generateAISummary(userInputs)}
-              {userInputs.map((input) => (
-                <div key={input.id} style={{ marginBottom: '20px', border: '1px solid white', padding: '20px', borderRadius: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                    <h3 style={{ margin: 0 }}>{input.section_name}</h3>
-                    <button
-                      onClick={() => handleEdit(input.section_name)}
-                      style={{
-                        padding: '5px 15px',
-                        borderRadius: '4px',
-                        border: 'none',
-                        backgroundColor: 'white',
-                        color: 'black',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Edit
-                    </button>
-                  </div>
-                  <div style={{ lineHeight: '1.6' }}>
-                    {formatSectionData(input.section_name, input.input_data)}
-                  </div>
-                </div>
-              ))}
-            </>
-          )}
-        </div>
-      )}
+      {/* AI Interview, Video Reflection and Review sections removed */}
     </div>
   );
 }

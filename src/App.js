@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import AdminDashboard from './components/admin/AdminDashboard';
 import ReportDashboard from './components/admin/ReportDashboard';
 import BuilderInputReport from './components/admin/BuilderInputReport';
 import BuilderView from './components/BuilderView';
+import { testSupabaseConnection } from './supabaseClient';
 
 function App() {
   const isAdmin = useMemo(() => {
@@ -11,6 +12,17 @@ function App() {
   }, []);
 
   const [activeView, setActiveView] = useState('builders');
+  
+  // Test Supabase connection when the app starts
+  useEffect(() => {
+    const testConnection = async () => {
+      console.log('Testing Supabase connection...');
+      const result = await testSupabaseConnection();
+      console.log('Supabase connection test result:', result);
+    };
+    
+    testConnection();
+  }, []);
 
   if (!isAdmin) {
     return <BuilderView />;

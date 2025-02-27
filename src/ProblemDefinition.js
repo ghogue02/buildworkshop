@@ -10,6 +10,7 @@ function ProblemDefinition({ onSave, sessionId }) {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState(null);
+  const [connectionError, setConnectionError] = useState(null); // Added for connection error tracking
   const isMounted = useRef(true);
   const lastSaveTime = useRef(null);
   const saveAttempts = useRef(0);
@@ -26,15 +27,32 @@ function ProblemDefinition({ onSave, sessionId }) {
     }
   };
 
+  // Add a timeout to prevent infinite loading
+  useEffect(() => {
+    // Set a timeout to prevent infinite loading
+    const loadingTimeout = setTimeout(() => {
+      if (loading && isMounted.current) {
+        debugLog('Loading timeout reached, forcing loading state to false');
+        setLoading(false);
+      }
+    }, 5000); // 5 second timeout
+
+    return () => {
+      clearTimeout(loadingTimeout);
+    };
+  }, [loading]);
+
   // Load existing data
   useEffect(() => {
     const loadExistingData = async () => {
       if (!sessionId) {
         debugLog('No sessionId provided, skipping data load');
+        setLoading(false); // Ensure loading is set to false even if no sessionId
         return;
       }
 
       debugLog(`Loading existing data for session ${sessionId}`);
+      setConnectionError(null); // Reset connection error
       try {
         // Use withRetry for better reliability
         const { data, error } = await withRetry(async () => {
@@ -50,6 +68,7 @@ function ProblemDefinition({ onSave, sessionId }) {
         if (error) {
           if (error.code !== 'PGRST116') {
             debugLog(`Error fetching data: ${error.code}`, error);
+            setConnectionError(`Database error: ${error.message}`);
             throw error;
           } else {
             debugLog('No existing data found (PGRST116)');
@@ -64,11 +83,29 @@ function ProblemDefinition({ onSave, sessionId }) {
           setRootCauses(data.input_data.rootCauses || '');
           setOutcome(data.input_data.outcome || '');
         } else {
-          debugLog('No data or empty data returned');
+          debugLog('No data or empty data returned, initializing with defaults');
+          // Initialize with default values
+          setSummary('');
+          setContext('');
+          setImpact('');
+          setRootCauses('');
+          setOutcome('');
         }
       } catch (error) {
         debugLog('Error loading data:', error);
         console.error('Error loading data:', error);
+        // Initialize with default values on error
+        setSummary('');
+        setContext('');
+        setImpact('');
+        setRootCauses('');
+        setOutcome('');
+        
+        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+          const errorMsg = 'Network error: Could not connect to Supabase. Please check your internet connection.';
+          debugLog(errorMsg);
+          setConnectionError(errorMsg);
+        }
       } finally {
         if (isMounted.current) {
           setLoading(false);
@@ -134,6 +171,7 @@ function ProblemDefinition({ onSave, sessionId }) {
     debugLog(`Time since last save: ${timeSinceLastSave ? `${timeSinceLastSave}ms` : 'First save'}`);
     
     setSaveStatus('Saving...');
+    setConnectionError(null); // Reset connection error
     try {
       debugLog('Preparing data for save', {
         session_id: sessionId,
@@ -154,6 +192,7 @@ function ProblemDefinition({ onSave, sessionId }) {
 
       if (fetchError) {
         debugLog('Error checking for existing data:', fetchError);
+        setConnectionError(`Database error: ${fetchError.message}`);
         throw fetchError;
       }
 
@@ -203,6 +242,7 @@ function ProblemDefinition({ onSave, sessionId }) {
 
       if (error) {
         debugLog('Database operation failed:', error);
+        setConnectionError(`Database operation failed: ${error.message}`);
         throw error;
       }
 
@@ -232,7 +272,15 @@ function ProblemDefinition({ onSave, sessionId }) {
     } catch (error) {
       debugLog('Error saving data:', error);
       console.error('Error saving data:', error);
-      setSaveStatus(`Error: ${error.message || 'Failed to save'}`);
+      
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        const errorMsg = 'Network error: Could not connect to the database. Please check your internet connection.';
+        debugLog(errorMsg);
+        setConnectionError(errorMsg);
+        setSaveStatus(`Error: Failed to connect to database`);
+      } else {
+        setSaveStatus(`Error: ${error.message || 'Failed to save'}`);
+      }
       
       // Clear error status after 5 seconds
       setTimeout(() => {
@@ -261,6 +309,24 @@ function ProblemDefinition({ onSave, sessionId }) {
       clearTimeout(timer);
     };
   }, [summary, context, impact, rootCauses, outcome, saveData, loading]);
+
+  // Display connection error if present
+  const renderConnectionError = () => {
+    if (!connectionError) return null;
+    
+    return (
+      <div style={{
+        backgroundColor: '#ff4444',
+        color: 'white',
+        padding: '10px',
+        borderRadius: '4px',
+        marginBottom: '20px',
+        width: '100%'
+      }}>
+        <strong>Connection Error:</strong> {connectionError}
+      </div>
+    );
+  };
 
   if (loading) {
     return <div>Loading...</div>;
@@ -334,6 +400,7 @@ function ProblemDefinition({ onSave, sessionId }) {
             </div>
           )}
         </div>
+        {renderConnectionError()}
         <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
           {errors.summary && <p style={{ color: 'red' }}>{errors.summary}</p>}
           <label htmlFor="summary">Summary (One-sentence description)</label>

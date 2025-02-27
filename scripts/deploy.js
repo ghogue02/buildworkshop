@@ -55,6 +55,10 @@ try {
   console.log('Updating env-config.js to use Web Speech API...');
   execSync('node scripts/web-speech-api-update.js build/env-config.js', { stdio: 'inherit' });
 
+  // Fix paths in build files
+  console.log('Fixing paths in build files...');
+  execSync('node scripts/fix-paths.js', { stdio: 'inherit' });
+
   // Deploy to GitHub Pages
   console.log('Deploying to GitHub Pages...');
   execSync('gh-pages -d build', { stdio: 'inherit' });

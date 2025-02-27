@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { builderInputAnalysis } from '../../services/builderInputAnalysis';
 import { config } from '../../config';
-import { videoService } from '../../services/videoService';
 
 function BuilderDetails({ builder, onDeleteBuilder }) {
   const [adminNotes, setAdminNotes] = useState('');
@@ -11,30 +10,13 @@ function BuilderDetails({ builder, onDeleteBuilder }) {
   const [saveStatus, setSaveStatus] = useState('');
   const [aiSummary, setAiSummary] = useState('');
   const [isAIGenerated, setIsAIGenerated] = useState(false);
-  const [videoRecording, setVideoRecording] = useState(null);
-  const [isLoadingVideo, setIsLoadingVideo] = useState(false);
 
   useEffect(() => {
     if (builder) {
       fetchAdminNotes();
       generateSummary();
-      fetchVideoRecording();
     }
   }, [builder]);
-
-  const fetchVideoRecording = async () => {
-    if (!builder?.sessionId) return;
-    
-    try {
-      setIsLoadingVideo(true);
-      const recordingData = await videoService.getVideoRecording(builder.sessionId);
-      setVideoRecording(recordingData);
-    } catch (error) {
-      console.error('Error fetching video recording:', error);
-    } finally {
-      setIsLoadingVideo(false);
-    }
-  };
 
   const generateSummary = async () => {
     if (!builder) return;
@@ -415,70 +397,7 @@ function BuilderDetails({ builder, onDeleteBuilder }) {
               <div style={{ color: isComplete ? 'white' : '#666' }}>
                 {formatSectionData(sectionName, sectionData)}
                 
-                {/* Display video recording for Presentations & Retro section */}
-                {sectionName === 'Presentations & Retro' && (
-                  <div style={{ marginTop: '20px', borderTop: '1px solid #333', paddingTop: '15px' }}>
-                    <h4 style={{ marginBottom: '10px' }}>Video Reflection</h4>
-                    {isLoadingVideo ? (
-                      <div>Loading video...</div>
-                    ) : videoRecording ? (
-                      <div>
-                        {videoRecording.video_url && videoRecording.video_url.startsWith('data:') ? (
-                          // Handle data URL
-                          <video
-                            src={videoRecording.video_url}
-                            controls
-                            style={{
-                              width: '100%',
-                              maxHeight: '400px',
-                              backgroundColor: 'black',
-                              borderRadius: '4px',
-                              marginBottom: '15px'
-                            }}
-                          />
-                        ) : videoRecording.video_url ? (
-                          // Handle regular URL
-                          <video
-                            src={videoRecording.video_url}
-                            controls
-                            style={{
-                              width: '100%',
-                              maxHeight: '400px',
-                              backgroundColor: 'black',
-                              borderRadius: '4px',
-                              marginBottom: '15px'
-                            }}
-                          />
-                        ) : (
-                          <div style={{ color: '#666', fontStyle: 'italic', marginBottom: '15px' }}>
-                            Video URL is missing
-                          </div>
-                        )}
-                        
-                        {videoRecording.transcript && (
-                          <div>
-                            <h5 style={{ marginBottom: '5px' }}>Transcript</h5>
-                            <div style={{
-                              padding: '15px',
-                              backgroundColor: '#111',
-                              border: '1px solid #333',
-                              borderRadius: '4px',
-                              whiteSpace: 'pre-wrap',
-                              fontSize: '14px',
-                              lineHeight: '1.5'
-                            }}>
-                              {videoRecording.transcript}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div style={{ color: '#666', fontStyle: 'italic' }}>
-                        No video recording available
-                      </div>
-                    )}
-                  </div>
-                )}
+                {/* Video reflection section removed */}
               </div>
             </div>
           );

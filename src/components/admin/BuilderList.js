@@ -1,4 +1,5 @@
 import React from 'react';
+import { exportBuildersToCSV } from '../../utils/csvExport';
 
 function BuilderList({ builders, selectedBuilder, onSelectBuilder }) {
   return (
@@ -7,6 +8,31 @@ function BuilderList({ builders, selectedBuilder, onSelectBuilder }) {
       flexDirection: 'column',
       gap: '10px'
     }}>
+      {/* Export Button */}
+      <div style={{
+        marginBottom: '20px',
+        display: 'flex',
+        justifyContent: 'flex-end'
+      }}>
+        <button
+          onClick={() => exportBuildersToCSV(builders)}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#4CAF50',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseOver={(e) => e.target.style.backgroundColor = '#45a049'}
+          onMouseOut={(e) => e.target.style.backgroundColor = '#4CAF50'}
+        >
+          Export to CSV
+        </button>
+      </div>
+
       {builders.map((builder) => (
         <div
           key={builder.sessionId}
